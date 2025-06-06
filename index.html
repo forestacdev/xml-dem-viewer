@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>demxml</title>
+    </head>
+    <body>
+        <div id="app"></div>
+        <div id="drop-zone">ZIPファイルをドロップしてください</div>
+        <script type="module" src="/src/main.ts"></script>
+        <script>
+            // ドラッグアンドドロップ機能
+            const dropZone = document.getElementById('drop-zone');
+            let dragCounter = 0;
+
+            // ドラッグ開始時
+            document.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                dragCounter++;
+                dropZone.style.display = 'flex';
+            });
+
+            // ドラッグ中
+            document.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+
+            // ドラッグ終了時
+            document.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dragCounter--;
+                if (dragCounter === 0) {
+                    dropZone.style.display = 'none';
+                }
+            });
+
+            // ドロップ時
+            document.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dragCounter = 0;
+                dropZone.style.display = 'none';
+
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type === 'application/zip' || file.name.endsWith('.zip')) {
+                        // createDemFromZipUpload関数を呼び出す
+                        if (window.createDemFromZipUpload) {
+                            window.createDemFromZipUpload(file);
+                        } else {
+                            console.error('createDemFromZipUpload関数が見つかりません');
+                        }
+                    } else {
+                        alert('ZIPファイルをドロップしてください');
+                    }
+                }
+            });
+        </script>
+    </body>
+</html>
