@@ -1,11 +1,10 @@
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { Coordinates } from 'maplibre-gl';
 
 import vertexShaderSource from './shaders/vertex.glsl?raw';
 import fragmentShaderSource from './shaders/fragment.glsl?raw';
 
-import type { ImageSize, GeoTransform, GeoTiffData } from '../geotiff';
+import type { GeoTiffData } from '../geotiff';
 
 interface CanvasOptions {
     array: Float32Array;
@@ -51,7 +50,7 @@ const createProgram = (gl: WebGLRenderingContext, vertexShader: WebGLShader, fra
 // キャンバスとWebGLコンテキストの初期化
 const canvas = document.createElement('canvas');
 document.body.appendChild(canvas);
-// canvas.style.display = 'none'; // 非表示にする
+canvas.style.display = 'none'; // 非表示にする
 
 if (!canvas) {
     throw new Error('Canvas element with id "my-canvas" not found.');
@@ -59,6 +58,11 @@ if (!canvas) {
 const gl = canvas.getContext('webgl2');
 if (!gl) {
     throw new Error('WebGL context could not be initialized.');
+}
+
+const ext = gl.getExtension('EXT_color_buffer_float');
+if (!ext) {
+    console.error('Float texture not supported');
 }
 // シェーダープログラムの作成
 const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
@@ -88,14 +92,11 @@ const processCanvas = (option: CanvasOptions) => {
 
     const { array, bbox, height, width, min, max } = option;
 
-    console.log(array);
-
     // キャンバスサイズを合わせる
     canvas.width = width;
     canvas.height = height;
     gl.viewport(0, 0, canvas.width, canvas.height);
 
-    // テクスチャを作成し既存キャンバスを読み込む
     // テクスチャを作成し既存キャンバスを読み込む
     const texture = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
@@ -114,11 +115,10 @@ const processCanvas = (option: CanvasOptions) => {
         array, // pixels
     );
 
-    // テクスチャパラメータを設定
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
     // 追加：テクスチャサンプラーのユニフォームを設定
     const textureUniformLocation = gl.getUniformLocation(program, 'u_texArray');
@@ -173,11 +173,6 @@ export const addMapLayerFromDem = async (geotiffData: GeoTiffData) => {
 
     const { geoTransform, demArray, imageSize, statistics } = geotiffData;
 
-    console.log('Adding DEM layer to MapLibre map...');
-    console.log('Adding DEM layer to MapLibre map...');
-    console.log('Adding DEM layer to MapLibre map...');
-    console.log('Adding DEM layer to MapLibre map...');
-
     const height = demArray.length;
     const width = demArray[0]?.length || 0;
     // 1次元配列に変換
@@ -188,9 +183,7 @@ export const addMapLayerFromDem = async (geotiffData: GeoTiffData) => {
         for (let j = 0; j < width; j++) {
             let elevation = demArray[i][j];
             // NoData値の処理
-            // if (elevation === -9999 || isNaN(elevation)) {
-            //     elevation = statistics.minElevation;
-            // }
+
             elevationArray[index] = elevation;
             index++;
         }
