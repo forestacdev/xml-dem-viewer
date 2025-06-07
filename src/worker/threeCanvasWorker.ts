@@ -6,6 +6,28 @@ let camera: THREE.PerspectiveCamera;
 let scene: THREE.Scene;
 let orbitControls: OrbitControls;
 
+type MessageType = 'init' | 'addMesh' | 'resize' | 'mouseEvent' | 'wheelEvent';
+
+type MouseEventType = 'mousedown' | 'mousemove' | 'mouseup' | 'wheel';
+
+interface Props {
+    data: {
+        type: MessageType;
+        canvas: HTMLCanvasElement;
+        width: number;
+        height: number;
+        devicePixelRatio: number;
+        clientX: number;
+        clientY: number;
+        button: number;
+        buttons: number;
+        eventType: MouseEventType; // 'mousedown', 'mousemove', 'mouseup' など
+        demArray: number[][];
+        geoTransform: number[];
+        imageSize: { x: number; y: number };
+    };
+}
+
 // メインスレッドから通達があったとき
 onmessage = (event) => {
     switch (event.data.type) {
@@ -27,7 +49,7 @@ onmessage = (event) => {
     }
 };
 
-const init = (event) => {
+const init = (event: Props) => {
     // メインスレッドからオフスクリーンキャンバスを受け取る
     const canvas = event.data.canvas;
     // スクリーン情報を受け取る
@@ -36,37 +58,30 @@ const init = (event) => {
     const devicePixelRatio = event.data.devicePixelRatio;
     // Three.jsのライブラリの内部で style.width にアクセスされてしまう
     // 対策しないと、エラーが発生するためダミーの値を指定
-    canvas.style = { width: 0, height: 0 };
+    canvas.style = { width: 0, height: 0 } as any;
 
     // レンダラーを作成
     renderer = new THREE.WebGLRenderer({ canvas });
 
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 10000);
-    camera.position.set(0, 0, 1000);
+    camera.position.set(100, 100, 1000);
     // OrbitControlsを初期化（ダミーDOM要素を作成）
     const dummyDomElement = createDummyDomElement(width, height);
     orbitControls = new OrbitControls(camera, dummyDomElement);
     orbitControls.enableDamping = true;
     orbitControls.enablePan = false;
 
-    resize(width, height, devicePixelRatio);
+    const grid = new THREE.GridHelper(1000, 100, 0x0000ff, 0x808080);
+    grid.name = 'grid';
+    scene.add(grid);
 
-    // 球体を作成
-    const geometry = new THREE.SphereGeometry(300, 30, 30);
-    // マテリアルを作成
-    const material = new THREE.MeshBasicMaterial({ wireframe: true });
-    // メッシュを作成
-    const mesh = new THREE.Mesh(geometry, material);
-    // 3D空間にメッシュを追加
-    scene.add(mesh);
+    resize(width, height, devicePixelRatio);
 
     tick();
 
     // 毎フレーム時に実行されるループイベントです
     function tick() {
-        mesh.rotation.y += 0.01;
-
         const target = orbitControls.target;
 
         // レンダリング
@@ -215,7 +230,6 @@ function handleMouseEvent(eventData: any) {
             stopPropagation: () => {},
         });
     } else if (eventType === 'mousemove') {
-        console.log('mousemove', clientX, clientY, buttons);
         // @ts-ignore
         orbitControls._onPointerMove({
             clientX,
