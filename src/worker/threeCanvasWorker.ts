@@ -299,7 +299,35 @@ const addMesh = (demArray: number[][], geoTransform: number[], imageSize: { x: n
     // ピクセル解像度（スケール調整）
     const dx = imageSize.x / width;
     const dy = imageSize.y / height;
-    const elevationScale = 0.5;
+    // geoTransformのピクセルサイズを使ってelevationScaleを計算
+    let elevationScale = 0.25; // デフォルト値
+
+    if (geoTransform) {
+        const pixelSizeX = Math.abs(geoTransform.pixelSizeX); // 度単位
+        const pixelSizeY = Math.abs(geoTransform.pixelSizeY); // 度単位
+
+        // 度をメートルに変換（緯度35度付近）
+        const metersPerDegree = 111000; // 約111km/度
+        const pixelSizeMetersX = pixelSizeX * metersPerDegree; // 約6.2m
+        const pixelSizeMetersY = pixelSizeY * metersPerDegree; // 約6.2m
+
+        // Three.js空間でのピクセルあたりの距離
+        const meshPixelSizeX = dx; // Three.js空間でのX方向ピクセルサイズ
+        const meshPixelSizeY = dy; // Three.js空間でのY方向ピクセルサイズ
+
+        // 実距離とメッシュ距離の比率
+        const scaleX = meshPixelSizeX / pixelSizeMetersX;
+        const scaleY = meshPixelSizeY / pixelSizeMetersY;
+        const averageScale = (scaleX + scaleY) / 2;
+
+        // 標高も同じスケールを適用
+        elevationScale = averageScale;
+
+        console.log(`📏 実ピクセルサイズ: ${pixelSizeMetersX.toFixed(2)}m × ${pixelSizeMetersY.toFixed(2)}m`);
+        console.log(`📏 メッシュピクセルサイズ: ${meshPixelSizeX.toFixed(4)} × ${meshPixelSizeY.toFixed(4)}`);
+        console.log(`📏 スケール比率: ${averageScale.toFixed(6)}`);
+        console.log(`📏 elevationScale: ${elevationScale.toFixed(6)}`);
+    }
 
     // BufferGeometry作成
     const geometry = new THREE.BufferGeometry();
