@@ -9,69 +9,182 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 import GeoTIFF, { writeArrayBuffer } from 'geotiff';
 
-// シーンの作成
-const scene = new THREE.Scene();
-
-// カメラ
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-
-camera.position.set(100, 100, 100);
-scene.add(camera);
-
 // キャンバス
 const canvas = document.getElementById('three-canvas') as HTMLCanvasElement;
-const context = canvas.getContext('webgl2') as WebGL2RenderingContext;
 
-// コントロール
-const orbitControls = new OrbitControls(camera, canvas);
-orbitControls.enableDamping = true;
-orbitControls.enablePan = false;
-orbitControls.enableZoom = false;
+const offscreenCanvas = canvas.transferControlToOffscreen();
 
-const zoomControls = new TrackballControls(camera, canvas);
-zoomControls.noPan = true;
-zoomControls.noRotate = true;
-zoomControls.zoomSpeed = 0.2;
-
-const grid = new THREE.GridHelper(1000, 100);
-
-scene.add(grid);
-
-// レンダラー
-const renderer = new THREE.WebGLRenderer({
-    canvas,
-    context,
-    alpha: true,
+// WebWorkerを使用してオフスクリーンレンダリングを行う
+const threeCanvasWorker = new Worker(new URL('./worker/threeCanvasWorker.ts', import.meta.url), {
+    type: 'module',
 });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-// 画面リサイズ時にキャンバスもリサイズ
-const onResize = () => {
-    // サイズを取得
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+// オフスクリーンレンダリングを使用する場合は、以下のように設定
 
-    // レンダラーのサイズを調整する
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(width, height);
+threeCanvasWorker.postMessage(
+    {
+        type: 'init',
+        canvas: offscreenCanvas,
+        width: innerWidth,
+        height: innerHeight,
+        devicePixelRatio: devicePixelRatio,
+    },
+    [offscreenCanvas],
+);
 
-    // カメラのアスペクト比を正す
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-};
-window.addEventListener('resize', onResize);
+window.addEventListener('resize', (event) => {
+    threeCanvasWorker.postMessage({
+        type: 'resize',
+        width: innerWidth,
+        height: innerHeight,
+        devicePixelRatio: devicePixelRatio,
+    });
+});
 
-// アニメーション
-const animate = () => {
-    requestAnimationFrame(animate);
-    const target = orbitControls.target;
-    orbitControls.update();
-    zoomControls.target.set(target.x, target.y, target.z);
-    zoomControls.update();
-    renderer.render(scene, camera);
-};
-animate();
+// マウスイベントをワーカーに転送
+canvas.addEventListener('mousedown', (event) => {
+    threeCanvasWorker.postMessage({
+        type: 'mouseEvent',
+        eventType: 'mousedown',
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: event.button,
+        buttons: event.buttons,
+    });
+});
+
+canvas.addEventListener('mousemove', (event) => {
+    threeCanvasWorker.postMessage({
+        type: 'mouseEvent',
+        eventType: 'mousemove',
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: event.button,
+        buttons: event.buttons,
+    });
+});
+
+canvas.addEventListener('mouseup', (event) => {
+    threeCanvasWorker.postMessage({
+        type: 'mouseEvent',
+        eventType: 'mouseup',
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: event.button,
+        buttons: event.buttons,
+    });
+});
+
+canvas.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    threeCanvasWorker.postMessage({
+        type: 'wheelEvent',
+        deltaY: event.deltaY,
+        deltaX: event.deltaX,
+        deltaZ: event.deltaZ,
+    });
+});
+
+// タッチイベントも追加（モバイル対応）
+canvas.addEventListener('touchstart', (event) => {
+    event.preventDefault();
+    const touch = event.touches[0];
+    threeCanvasWorker.postMessage({
+        type: 'mouseEvent',
+        eventType: 'mousedown',
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        button: 0,
+        buttons: 1,
+    });
+});
+
+canvas.addEventListener('touchmove', (event) => {
+    event.preventDefault();
+    const touch = event.touches[0];
+    threeCanvasWorker.postMessage({
+        type: 'mouseEvent',
+        eventType: 'mousemove',
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        button: 0,
+        buttons: 1,
+    });
+});
+
+canvas.addEventListener('touchend', (event) => {
+    event.preventDefault();
+    threeCanvasWorker.postMessage({
+        type: 'mouseEvent',
+        eventType: 'mouseup',
+        clientX: 0,
+        clientY: 0,
+        button: 0,
+        buttons: 0,
+    });
+});
+
+// シーンの作成
+// const scene = new THREE.Scene();
+
+// // カメラ
+// const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+
+// camera.position.set(100, 100, 100);
+// scene.add(camera);
+
+// const context = canvas.getContext('webgl2') as WebGL2RenderingContext;
+
+// // コントロール
+// const orbitControls = new OrbitControls(camera, canvas);
+// orbitControls.enableDamping = true;
+// orbitControls.enablePan = false;
+// orbitControls.enableZoom = false;
+
+// const zoomControls = new TrackballControls(camera, canvas);
+// zoomControls.noPan = true;
+// zoomControls.noRotate = true;
+// zoomControls.zoomSpeed = 0.2;
+
+// const grid = new THREE.GridHelper(1000, 100);
+
+// scene.add(grid);
+
+// // レンダラー
+// const renderer = new THREE.WebGLRenderer({
+//     canvas,
+//     context,
+//     alpha: true,
+// });
+// renderer.setSize(window.innerWidth, window.innerHeight);
+// renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+// // 画面リサイズ時にキャンバスもリサイズ
+// const onResize = () => {
+//     // サイズを取得
+//     const width = window.innerWidth;
+//     const height = window.innerHeight;
+
+//     // レンダラーのサイズを調整する
+//     renderer.setPixelRatio(window.devicePixelRatio);
+//     renderer.setSize(width, height);
+
+//     // カメラのアスペクト比を正す
+//     camera.aspect = width / height;
+//     camera.updateProjectionMatrix();
+// };
+// window.addEventListener('resize', onResize);
+
+// // アニメーション
+// const animate = () => {
+//     requestAnimationFrame(animate);
+//     const target = orbitControls.target;
+//     orbitControls.update();
+//     zoomControls.target.set(target.x, target.y, target.z);
+//     zoomControls.update();
+//     renderer.render(scene, camera);
+// };
+// animate();
 
 // シンプルなWebWorker TIFF作成
 const downloadGeoTiffWithWorker = async (demArray: number[][], geoTransform: number[], filename: string = 'elevation.tif'): Promise<boolean> => {
@@ -217,34 +330,12 @@ function initializeDragAndDrop() {
                     const geotiffData = await createGeoTiffFromDem(dem);
                     const { geoTransform, demArray, imageSize } = geotiffData;
 
-                    const elevationScale = 0.5; // 標高のスケールを調整するための係数
-
-                    // 標高データを3Dメッシュに変換
-                    const geometry = new THREE.PlaneGeometry(imageSize.x, imageSize.y, imageSize.x - 1, imageSize.y - 1);
-
-                    // 標高データで頂点を変位
-                    const vertices = geometry.attributes.position.array;
-                    for (let i = 0; i < vertices.length; i += 3) {
-                        const x = Math.floor(i / 3) % imageSize.x;
-                        const y = Math.floor(i / 3 / imageSize.x);
-                        const h = demArray[y][x] === -9999 ? 0 : demArray[y][x];
-                        vertices[i + 2] = h * elevationScale; // Z座標に標高を適用
-                    }
-
-                    geometry.attributes.position.needsUpdate = true;
-                    geometry.computeVertexNormals();
-                    // マテリアルの作成
-                    const material = new THREE.MeshBasicMaterial({
-                        color: 0x00ff00,
-                        wireframe: true,
+                    threeCanvasWorker.postMessage({
+                        type: 'addMesh',
+                        demArray: demArray,
+                        geoTransform: geoTransform,
+                        imageSize: imageSize,
                     });
-                    // メッシュの作成
-                    const mesh = new THREE.Mesh(geometry, material);
-                    mesh.rotation.x = -Math.PI / 2; // 地面に対して水平に配置
-
-                    scene.add(mesh);
-
-                    console.log('DEM Mesh created successfully:', mesh);
 
                     // GeoTIFFダウンロード
                     // await downloadGeoTiffWithWorker(demArray, geoTransform, 'elevation.tif');
