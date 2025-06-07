@@ -126,78 +126,142 @@ const downloadGeoTiffWithWorker = async (
     demArray: number[][],
     geoTransform: GeoTransform,
     filename: string,
+    dataType: "elevation" | "mapbox" = "elevation",
 ): Promise<boolean> => {
     return new Promise((resolve, reject) => {
         console.log("Starting WebWorker TIFF creation...");
         console.log(`Dimensions: ${demArray[0]?.length} × ${demArray.length}`);
 
-        // WebWorker作成
-        const worker = new Worker(new URL("./utils/geotiffWriterWorker.ts", import.meta.url), {
-            type: "module",
-        });
+        // データ検証
+        if (dataType === "elevation") {
+            // WebWorker作成
+            const worker = new Worker(new URL("./utils/geotiffWriterWorker.ts", import.meta.url), {
+                type: "module",
+            });
 
-        // WebWorkerからのメッセージハンドラー
-        worker.onmessage = (e) => {
-            const { type, buffer, error, stack } = e.data;
+            // WebWorkerからのメッセージハンドラー
+            worker.onmessage = (e) => {
+                const { type, buffer, error, stack } = e.data;
 
-            switch (type) {
-                case "complete":
-                    try {
-                        // Blobを作成してダウンロード
-                        const blob = new Blob([buffer], { type: "image/tiff" });
-                        const url = URL.createObjectURL(blob);
+                switch (type) {
+                    case "complete":
+                        try {
+                            // Blobを作成してダウンロード
+                            const blob = new Blob([buffer], { type: "image/tiff" });
+                            const url = URL.createObjectURL(blob);
 
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = filename;
-                        a.style.display = "none";
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = filename;
+                            a.style.display = "none";
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
 
-                        URL.revokeObjectURL(url);
+                            URL.revokeObjectURL(url);
+                            worker.terminate();
+
+                            console.log("✅ WebWorker TIFF creation completed successfully");
+                            resolve(true);
+                        } catch (downloadError) {
+                            console.error("❌ Download error:", downloadError);
+                            worker.terminate();
+                            reject(downloadError);
+                        }
+                        break;
+
+                    case "error":
+                        console.error("❌ WebWorker error:", error);
+                        console.error("Stack:", stack);
                         worker.terminate();
 
-                        console.log("✅ WebWorker TIFF creation completed successfully");
-                        resolve(true);
-                    } catch (downloadError) {
-                        console.error("❌ Download error:", downloadError);
+                        let errorMessage = "WebWorkerでのTIFF作成中にエラーが発生しました。\\n\\n";
+                        if (error.includes("out of memory")) {
+                            errorMessage +=
+                                "原因: メモリ不足です。\\n対策: データサイズを削減してください。";
+                        } else {
+                            errorMessage += `詳細: ${error}`;
+                        }
+
+                        alert(errorMessage);
+                        resolve(false);
+                        break;
+                }
+            };
+
+            // WebWorkerエラーハンドラー
+            worker.onerror = (error) => {
+                console.error("❌ WebWorker error:", error);
+                worker.terminate();
+                reject(error);
+            };
+
+            // WebWorkerにタスクを送信
+            worker.postMessage({
+                demArray: demArray,
+                geoTransform: geoTransform,
+            });
+        } else {
+            // Mapbox GL用のWebWorker作成
+            const worker = new Worker(new URL("./utils/terrainRgbWriter.ts", import.meta.url), {
+                type: "module",
+            });
+
+            // WebWorkerからのメッセージハンドラー
+            worker.onmessage = (e) => {
+                const { type, buffer, error, stack } = e.data;
+
+                switch (type) {
+                    case "complete":
+                        try {
+                            // Blobを作成してダウンロード
+                            const blob = new Blob([buffer], { type: "image/tiff" });
+                            const url = URL.createObjectURL(blob);
+
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = filename;
+                            a.style.display = "none";
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+
+                            URL.revokeObjectURL(url);
+                            worker.terminate();
+
+                            console.log(
+                                "✅ Mapbox GL WebWorker TIFF creation completed successfully",
+                            );
+                            resolve(true);
+                        } catch (downloadError) {
+                            console.error("❌ Download error:", downloadError);
+                            worker.terminate();
+                            reject(downloadError);
+                        }
+                        break;
+
+                    case "error":
+                        console.error("❌ Mapbox GL WebWorker error:", error);
+                        console.error("Stack:", stack);
                         worker.terminate();
-                        reject(downloadError);
-                    }
-                    break;
+                        alert(`Mapbox GL WebWorkerでのTIFF作成中にエラーが発生しました: ${error}`);
+                        resolve(false);
+                        break;
+                }
+            };
 
-                case "error":
-                    console.error("❌ WebWorker error:", error);
-                    console.error("Stack:", stack);
-                    worker.terminate();
-
-                    let errorMessage = "WebWorkerでのTIFF作成中にエラーが発生しました。\\n\\n";
-                    if (error.includes("out of memory")) {
-                        errorMessage +=
-                            "原因: メモリ不足です。\\n対策: データサイズを削減してください。";
-                    } else {
-                        errorMessage += `詳細: ${error}`;
-                    }
-
-                    alert(errorMessage);
-                    resolve(false);
-                    break;
-            }
-        };
-
-        // WebWorkerエラーハンドラー
-        worker.onerror = (error) => {
-            console.error("❌ WebWorker error:", error);
-            worker.terminate();
-            reject(error);
-        };
-
-        // WebWorkerにタスクを送信
-        worker.postMessage({
-            demArray: demArray,
-            geoTransform: geoTransform,
-        });
+            // WebWorkerエラーハンドラー
+            worker.onerror = (error) => {
+                console.error("❌ Mapbox GL WebWorker error:", error);
+                worker.terminate();
+                reject(error);
+            };
+            // WebWorkerにタスクを送信
+            worker.postMessage({
+                demArray: demArray,
+                geoTransform: geoTransform,
+            });
+        }
     });
 };
 
@@ -253,7 +317,7 @@ const processFile = async (input: File | File[]) => {
             await addMapLayerFromDem(geotiffData);
 
             // GeoTIFFダウンロード
-            await downloadGeoTiffWithWorker(demArray, geoTransform, "dem.tiff");
+            await downloadGeoTiffWithWorker(demArray, geoTransform, "dem.tiff", "mapbox");
 
             threeCanvasWorker.postMessage({
                 type: "addMesh",

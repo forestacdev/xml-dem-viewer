@@ -1,4 +1,4 @@
-import type { GeoTransform } from './geotiff';
+import type { GeoTransform } from "./geotiff";
 
 // 標高値をTerrain RGB形式にエンコード
 const elevationToTerrainRGB = (elevation: number): [number, number, number, number] => {
@@ -24,7 +24,10 @@ const elevationToTerrainRGB = (elevation: number): [number, number, number, numb
 };
 
 // Terrain RGB GeoTIFF作成関数
-const createTerrainRGBGeoTiffBuffer = (demArray: number[][], geoTransform: GeoTransform): ArrayBuffer => {
+const createTerrainRGBGeoTiffBuffer = (
+    demArray: number[][],
+    geoTransform: GeoTransform,
+): ArrayBuffer => {
     const height = demArray.length;
     const width = demArray[0].length;
     const samplesPerPixel = 4; // RGBA
@@ -32,7 +35,9 @@ const createTerrainRGBGeoTiffBuffer = (demArray: number[][], geoTransform: GeoTr
     const bytesPerPixel = samplesPerPixel; // 4 bytes (RGBA)
     const imageDataSize = width * height * bytesPerPixel;
 
-    console.log(`Creating Terrain RGB GeoTIFF: ${width}x${height}, ${samplesPerPixel} channels, ${imageDataSize} bytes`);
+    console.log(
+        `Creating Terrain RGB GeoTIFF: ${width}x${height}, ${samplesPerPixel} channels, ${imageDataSize} bytes`,
+    );
 
     // GeoTIFF用の追加データ
     const modelPixelScale = new Float64Array([
@@ -77,37 +82,49 @@ const createTerrainRGBGeoTiffBuffer = (demArray: number[][], geoTransform: GeoTr
     ]);
 
     // 文字列データ
-    const imageDescription = 'Terrain RGB encoded elevation data';
-    const nodataString = '0 0 0 0'; // RGBA形式でのNoData値
+    const imageDescription = "Terrain RGB encoded elevation data";
+    const nodataString = "0 0 0 0"; // RGBA形式でのNoData値
 
     // BitsPerSample配列（各チャンネルが8bit）
     const bitsPerSampleArray = new Uint16Array([8, 8, 8, 8]); // RGBA
 
-    // オフセット計算
+    // アライメント調整用のヘルパー関数
+    const alignTo = (value: number, alignment: number): number => {
+        return Math.ceil(value / alignment) * alignment;
+    };
+
+    // オフセット計算（アライメント考慮）
     const tiffHeaderSize = 8;
     const ifdEntryCount = 19; // Terrain RGB用のエントリ数
     const ifdSize = 2 + ifdEntryCount * 12 + 4;
 
     let currentOffset = tiffHeaderSize + ifdSize;
 
-    const geoKeyDirectoryOffset = currentOffset;
-    currentOffset += geoKeyDirectory.length * 2;
-
+    // 文字列データ（1バイトアライメント）
     const imageDescriptionOffset = currentOffset;
     currentOffset += imageDescription.length + 1;
 
     const nodataStringOffset = currentOffset;
     currentOffset += nodataString.length + 1;
 
+    // Uint16Array用に2バイトアライメント
+    currentOffset = alignTo(currentOffset, 2);
+    const geoKeyDirectoryOffset = currentOffset;
+    currentOffset += geoKeyDirectory.length * 2;
+
     const bitsPerSampleOffset = currentOffset;
     currentOffset += bitsPerSampleArray.length * 2;
 
+    // Float64Array用に8バイトアライメント
+    currentOffset = alignTo(currentOffset, 8);
     const modelPixelScaleOffset = currentOffset;
     currentOffset += 3 * 8;
 
     const modelTiepointOffset = currentOffset;
     currentOffset += 6 * 8;
 
+    // 画像データ用に4バイトアライメント
+    currentOffset = alignTo(currentOffset, 4);
     const imageDataOffset = currentOffset;
     const totalSize = imageDataOffset + imageDataSize;
 
@@ -162,25 +179,28 @@ const createTerrainRGBGeoTiffBuffer = (demArray: number[][], geoTransform: GeoTr
     // Next IFD offset (0 = no more IFDs)
     view.setUint32(offset, 0, true);
 
-    // === GeoKeyDirectory ===
+    // === GeoKeyDirectory ===（2バイトアライメント済み）
     const geoKeyView = new Uint16Array(buffer, geoKeyDirectoryOffset, geoKeyDirectory.length);
     geoKeyView.set(geoKeyDirectory);
-
     // === ImageDescription ===
-    const imageDescBytes = new TextEncoder().encode(imageDescription + '\0');
+    const imageDescBytes = new TextEncoder().encode(imageDescription + "\0");
     const imageDescView = new Uint8Array(buffer, imageDescriptionOffset, imageDescBytes.length);
     imageDescView.set(imageDescBytes);
 
     // === NODATA文字列 ===
-    const nodataBytes = new TextEncoder().encode(nodataString + '\0');
+    const nodataBytes = new TextEncoder().encode(nodataString + "\0");
     const nodataView = new Uint8Array(buffer, nodataStringOffset, nodataBytes.length);
     nodataView.set(nodataBytes);
 
     // === BitsPerSample配列 ===
-    const bitsPerSampleView = new Uint16Array(buffer, bitsPerSampleOffset, bitsPerSampleArray.length);
+    const bitsPerSampleView = new Uint16Array(
+        buffer,
+        bitsPerSampleOffset,
+        bitsPerSampleArray.length,
+    );
     bitsPerSampleView.set(bitsPerSampleArray);
 
-    // === ModelPixelScale ===
+    // === ModelPixelScale ===（8バイトアライメント済み）
     for (let i = 0; i < 3; i++) {
         view.setFloat64(modelPixelScaleOffset + i * 8, modelPixelScale[i], true);
     }
@@ -220,7 +240,7 @@ const createTerrainRGBGeoTiffBuffer = (demArray: number[][], geoTransform: GeoTr
         if (y % 100 === 0) {
             const progress = (y / height) * 0.8 + 0.1; // 10%から90%
             self.postMessage({
-                type: 'progress',
+                type: "progress",
                 message: `Terrain RGB変換中: ${((y / height) * 100).toFixed(1)}%`,
                 progress: progress,
             });
@@ -234,81 +254,4 @@ const createTerrainRGBGeoTiffBuffer = (demArray: number[][], geoTransform: GeoTr
     console.log(`- Valid ratio: ${((validPixels / totalPixels) * 100).toFixed(1)}%`);
 
     return buffer;
-};
-
-// エンコーディングテスト関数
-const testTerrainRGBEncoding = (): void => {
-    const testElevations = [-1000, 0, 100, 1000, 3776, 8848]; // 富士山、エベレストを含む
-
-    console.log('Terrain RGB Encoding Test:');
-    for (const elevation of testElevations) {
-        const [r, g, b, a] = elevationToTerrainRGB(elevation);
-        // デコードテスト
-        const decoded = -10000 + (r * 256 * 256 + g * 256 + b) * 0.1;
-        const error = Math.abs(elevation - decoded);
-
-        console.log(`${elevation}m -> RGB(${r},${g},${b},${a}) -> ${decoded.toFixed(1)}m (誤差: ${error.toFixed(1)}m)`);
-    }
-};
-
-// WebWorkerのメッセージハンドラー
-self.onmessage = (e) => {
-    const { demArray, geoTransform, testEncoding = false } = e.data;
-
-    try {
-        self.postMessage({ type: 'progress', message: 'Terrain RGB GeoTIFF処理開始...', progress: 0 });
-
-        // データ検証
-        if (!demArray || !demArray.length || !demArray[0] || !demArray[0].length) {
-            throw new Error('Invalid demArray data');
-        }
-
-        if (!geoTransform) {
-            throw new Error('Invalid geoTransform data');
-        }
-
-        const width = demArray[0].length;
-        const height = demArray.length;
-
-        self.postMessage({
-            type: 'info',
-            message: `処理データ: ${width} × ${height} pixels (Terrain RGB形式)`,
-        });
-
-        // エンコーディングテスト（オプション）
-        if (testEncoding) {
-            self.postMessage({ type: 'info', message: 'エンコーディングテスト実行中...' });
-            testTerrainRGBEncoding();
-        }
-
-        self.postMessage({ type: 'progress', message: 'Terrain RGB GeoTIFF作成中...', progress: 0.1 });
-
-        const buffer = createTerrainRGBGeoTiffBuffer(demArray, geoTransform);
-
-        self.postMessage({ type: 'progress', message: 'Terrain RGB GeoTIFF作成完了', progress: 1.0 });
-
-        self.postMessage({
-            type: 'complete',
-            buffer: buffer,
-            message: 'Terrain RGB GeoTIFF作成完了',
-            width: width,
-            height: height,
-            size: buffer.byteLength,
-            format: 'TerrainRGB',
-        });
-    } catch (error) {
-        if (error instanceof Error) {
-            self.postMessage({
-                type: 'error',
-                error: error.message,
-                stack: error.stack,
-            });
-        } else {
-            self.postMessage({
-                type: 'error',
-                error: 'Unknown error occurred',
-                stack: '',
-            });
-        }
-    }
 };
