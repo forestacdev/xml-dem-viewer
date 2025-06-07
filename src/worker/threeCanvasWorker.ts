@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
+import fragmentShader from '../shaders/fragment.glsl?raw';
+import vertexShader from '../shaders/vertex.glsl?raw';
 let renderer: THREE.WebGLRenderer;
 let camera: THREE.PerspectiveCamera;
 let scene: THREE.Scene;
@@ -27,6 +28,16 @@ interface Props {
         imageSize: { x: number; y: number };
     };
 }
+
+const demMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        uColor: { value: new THREE.Color('rgb(255,255,255)') },
+    },
+    // 頂点シェーダー
+    vertexShader,
+    fragmentShader,
+    transparent: true,
+});
 
 // メインスレッドから通達があったとき
 onmessage = (event) => {
@@ -274,42 +285,90 @@ const addMesh = (demArray: number[][], geoTransform: number[], imageSize: { x: n
         ((existingMesh as THREE.Mesh).material as THREE.Material).dispose();
     }
 
-    // DEMデータを元にメッシュを作成
-    const geometry = new THREE.PlaneGeometry(
-        imageSize.x,
-        imageSize.y,
-        Math.min(imageSize.x - 1, 512), // 頂点数を制限
-        Math.min(imageSize.y - 1, 512),
-    );
+    // DEMデータのサイズを取得
+    const height = demArray.length;
+    const width = demArray[0]?.length || 0;
 
-    const vertices = geometry.attributes.position.array;
-    const elevationScale = 0.5;
-
-    // 頂点の標高を設定
-    for (let i = 0; i < vertices.length; i += 3) {
-        const vertexIndex = i / 3;
-        const x = Math.floor(vertexIndex % (geometry.parameters.widthSegments + 1));
-        const y = Math.floor(vertexIndex / (geometry.parameters.widthSegments + 1));
-
-        // DEMデータのサンプリング
-        const demX = Math.floor((x / geometry.parameters.widthSegments) * (imageSize.x - 1));
-        const demY = Math.floor((y / geometry.parameters.heightSegments) * (imageSize.y - 1));
-
-        if (demY < demArray.length && demX < demArray[demY].length) {
-            const elevation = demArray[demY][demX] === -9999 ? 0 : demArray[demY][demX];
-            (vertices as Float32Array)[i + 2] = elevation * elevationScale;
-        }
+    if (width === 0 || height === 0) {
+        console.error('Invalid DEM data dimensions');
+        return;
     }
 
-    geometry.attributes.position.needsUpdate = true;
+    console.log(`📊 Creating BufferGeometry: ${width} × ${height} vertices`);
+
+    // ピクセル解像度（スケール調整）
+    const dx = imageSize.x / width;
+    const dy = imageSize.y / height;
+    const elevationScale = 0.5;
+
+    // BufferGeometry作成
+    const geometry = new THREE.BufferGeometry();
+
+    // ラスターの中心座標を原点にするためのオフセット
+    const xOffset = (width * dx) / 2;
+    const zOffset = (height * dy) / 2;
+
+    // 頂点座標の計算
+    const vertices = new Float32Array(width * height * 3);
+    for (let i = 0; i < height; i++) {
+        for (let j = 0; j < width; j++) {
+            const index = i * width + j;
+            const x = j * dx - xOffset;
+            const elevation = demArray[i][j] === -9999 ? 0 : demArray[i][j];
+            const y = elevation * elevationScale;
+            const z = i * dy - zOffset;
+            const k = index * 3;
+            vertices[k] = x;
+            vertices[k + 1] = y;
+            vertices[k + 2] = z;
+        }
+    }
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+
+    // UV座標の計算とセット（テクスチャマッピング用）
+    const uvs = new Float32Array(width * height * 2);
+    for (let i = 0; i < height; i++) {
+        for (let j = 0; j < width; j++) {
+            const index = i * width + j;
+            const u = j / (width - 1);
+            const v = i / (height - 1);
+            const k = index * 2;
+            uvs[k] = u;
+            uvs[k + 1] = v;
+        }
+    }
+    geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+
+    // インデックス配列の作成（三角形を定義）
+    const quadCount = (width - 1) * (height - 1);
+    const indices = new Uint32Array(quadCount * 6);
+    let p = 0;
+    for (let i = 0; i < height - 1; i++) {
+        for (let j = 0; j < width - 1; j++) {
+            const a = i * width + j;
+            const b = a + width;
+            const c = a + 1;
+            const d = b + 1;
+
+            // 三角形1: a, b, c
+            indices[p++] = a;
+            indices[p++] = b;
+            indices[p++] = c;
+
+            // 三角形2: b, d, c
+            indices[p++] = b;
+            indices[p++] = d;
+            indices[p++] = c;
+        }
+    }
+    geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+
+    // 法線ベクトルを計算（陰影効果のため）
     geometry.computeVertexNormals();
 
-    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
-
     // メッシュを作成
-    const mesh = new THREE.Mesh(geometry, material);
+    const mesh = new THREE.Mesh(geometry, demMaterial);
     mesh.name = 'demMesh';
-    mesh.rotation.x = -Math.PI / 2;
 
     scene.add(mesh);
 
