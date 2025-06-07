@@ -10,9 +10,11 @@ let camera: THREE.PerspectiveCamera;
 let scene: THREE.Scene;
 let orbitControls: OrbitControls;
 
-type MessageType = 'init' | 'addMesh' | 'resize' | 'mouseEvent' | 'wheelEvent';
+type MessageType = 'init' | 'addMesh' | 'resize' | 'mouseEvent' | 'wheelEvent' | 'toggleView';
 
 type MouseEventType = 'mousedown' | 'mousemove' | 'mouseup' | 'wheel';
+
+export type ViewMode = 'map' | '3d';
 
 interface Props {
     data: {
@@ -29,6 +31,7 @@ interface Props {
         demArray: number[][];
         geoTransform: number[];
         imageSize: { x: number; y: number };
+        isView: boolean;
     };
 }
 
@@ -60,6 +63,19 @@ onmessage = (event) => {
         case 'wheelEvent':
             handleWheelEvent(event.data);
             break;
+        case 'toggleView':
+            toggleCanvasView(event.data.mode);
+            break;
+    }
+};
+
+const toggleCanvasView = (val: boolean) => {
+    // canvasの表示/非表示を切り替える
+    const canvas = (self as any).canvas; // ワーカー内でcanvasを参照
+    if (val) {
+        canvas.style.display = 'block'; // 3Dビューに切り替え
+    } else {
+        canvas.style.display = 'none'; // マップビューに切り替え
     }
 };
 
@@ -296,8 +312,6 @@ const addMesh = (demArray: number[][], geoTransform: GeoTransform, imageSize: Im
         console.error('Invalid DEM data dimensions');
         return;
     }
-
-    console.log(`📊 Creating BufferGeometry: ${width} × ${height} vertices`);
 
     // ピクセル解像度（スケール調整）
     const dx = imageSize.x / width;

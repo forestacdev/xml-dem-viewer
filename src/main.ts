@@ -4,8 +4,9 @@ import { createDemFromZipUpload } from './demxml';
 import { createGeoTiffFromDem } from './geotiff';
 
 import GeoTIFF, { writeArrayBuffer } from 'geotiff';
-import { mapLibreMap, addMapLayerFromDem } from './map';
+import { mapLibreMap, addMapLayerFromDem, toggleMapView } from './map';
 import type { GeoTransform } from './geotiff';
+import type { ViewMode } from './worker/threeCanvasWorker';
 
 // キャンバス
 const canvas = document.getElementById('three-canvas') as HTMLCanvasElement;
@@ -315,3 +316,23 @@ function initializeDragAndDrop() {
 document.addEventListener('DOMContentLoaded', () => {
     initializeDragAndDrop();
 });
+
+const toggleViewButton = document.getElementById('toggle-view-button');
+
+let isViewMpde: ViewMode = 'map'; // 初期状態は3Dビュー
+
+if (toggleViewButton) {
+    toggleViewButton.addEventListener('click', () => {
+        if (isViewMpde === 'map') {
+            isViewMpde = '3d';
+            toggleViewButton.textContent = '地図ビューに切り替え';
+            threeCanvasWorker.postMessage({ type: 'toggleView', mode: true });
+            toggleMapView(false);
+        } else {
+            isViewMpde = 'map';
+            toggleViewButton.textContent = '3Dビューに切り替え';
+            threeCanvasWorker.postMessage({ type: 'toggleView', mode: false });
+            toggleMapView(true);
+        }
+    });
+}

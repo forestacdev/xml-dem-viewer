@@ -143,20 +143,20 @@ export const mapLibreMap = new maplibregl.Map({
         version: 8,
         glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
         sources: {
-            osm: {
+            pale: {
                 type: 'raster',
-                tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                tiles: ['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png'],
                 tileSize: 256,
                 minzoom: 0,
-                maxzoom: 19,
-                attribution: '&copy; OpenStreetMap contributors',
+                maxzoom: 18,
+                attribution: '地理院タイル',
             },
         },
         layers: [
             {
-                id: 'osm',
+                id: 'pale',
                 type: 'raster',
-                source: 'osm',
+                source: 'pale',
                 minzoom: 0,
                 maxzoom: 22,
             },
@@ -232,4 +232,16 @@ export const addMapLayerFromDem = async (geotiffData: GeoTiffData) => {
         padding: { top: 50, bottom: 50, left: 50, right: 50 },
         duration: 1500,
     });
+};
+
+export const toggleMapView = (isVisible: boolean) => {
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+        console.error('Map container not found.');
+        return;
+    }
+    mapContainer.style.display = isVisible ? 'block' : 'none';
+    if (isVisible && !mapLibreMap.isStyleLoaded()) {
+        mapLibreMap.resize();
+    }
 };
