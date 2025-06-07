@@ -1,7 +1,7 @@
 import './style.css';
 
 import { createDemFromZipUpload } from './demxml';
-import { createGeoTiffFromDem, renderDemToCanvas } from './demxml2';
+import { createGeoTiffFromDem } from './geotiff';
 
 import * as THREE from 'three';
 import { TrackballControls } from 'three/examples/jsm/controls/TrackballControls.js';
@@ -73,27 +73,15 @@ const animate = () => {
 };
 animate();
 
-// プログレス付きWebWorker TIFF作成
+// シンプルなWebWorker TIFF作成
 const downloadGeoTiffWithWorker = async (
     demArray: number[][],
     geoTransform: number[],
-    filename: string = 'elevation.tif',
-    includeGeoInfo: boolean = true,
-    onProgress?: (message: string, progress: number) => void,
+    filename: string = 'elevation.tif'
 ): Promise<boolean> => {
     return new Promise((resolve, reject) => {
         console.log('🚀 Starting WebWorker TIFF creation...');
         console.log(`📊 Dimensions: ${demArray[0]?.length} × ${demArray.length}`);
-
-        // プログレス表示の更新
-        const updateProgress = (message: string, progress: number) => {
-            console.log(`Progress: ${progress}% - ${message}`);
-            if (onProgress) {
-                onProgress(message, progress);
-            }
-        };
-
-        updateProgress('WebWorkerを初期化中...', 0);
 
         // WebWorker作成
         const worker = new Worker(new URL('./worker.ts', import.meta.url), {
@@ -102,16 +90,10 @@ const downloadGeoTiffWithWorker = async (
 
         // WebWorkerからのメッセージハンドラー
         worker.onmessage = (e) => {
-            const { type, buffer, message, progress, error, stack } = e.data;
+            const { type, buffer, error, stack } = e.data;
 
             switch (type) {
-                case 'progress':
-                    updateProgress(message, progress);
-                    break;
-
                 case 'complete':
-                    updateProgress('ダウンロードを開始...', 95);
-
                     try {
                         // Blobを作成してダウンロード
                         const blob = new Blob([buffer], { type: 'image/tiff' });
@@ -128,7 +110,6 @@ const downloadGeoTiffWithWorker = async (
                         URL.revokeObjectURL(url);
                         worker.terminate();
 
-                        updateProgress('ダウンロード完了！', 100);
                         console.log('✅ WebWorker TIFF creation completed successfully');
                         resolve(true);
                     } catch (downloadError) {
@@ -163,128 +144,12 @@ const downloadGeoTiffWithWorker = async (
             reject(error);
         };
 
-        // データ前処理とサイズチェック
-        try {
-            const height = demArray.length;
-            const width = demArray[0]?.length || 0;
-            const estimatedSizeMB = (width * height * 4) / (1024 * 1024);
-
-            updateProgress(`データサイズ: ${estimatedSizeMB.toFixed(1)}MB`, 5);
-
-            if (estimatedSizeMB > 500) {
-                const proceed = confirm(`非常に大きなファイル (${estimatedSizeMB.toFixed(1)} MB) を作成しようとしています。\\n` + `処理に時間がかかる可能性があります。続行しますか？`);
-                if (!proceed) {
-                    worker.terminate();
-                    resolve(false);
-                    return;
-                }
-            }
-
-            // WebWorkerにタスクを送信
-            updateProgress('WebWorkerにデータを送信中...', 10);
-            worker.postMessage({
-                type: 'createTiff',
-                demArray: demArray,
-                geoTransform: geoTransform,
-                includeGeoInfo: includeGeoInfo,
-            });
-        } catch (error) {
-            console.error('❌ Data preprocessing error:', error);
-            worker.terminate();
-            reject(error);
-        }
-    });
-};
-
-// プログレス表示付きUI付きのラッパー関数
-export const downloadTiffWithUI = async (demArray: number[][], geoTransform: number[], filename: string = 'elevation.tif', includeGeoInfo: boolean = true) => {
-    // プログレス表示要素を作成
-    const progressContainer = document.createElement('div');
-    progressContainer.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        z-index: 10000;
-        min-width: 300px;
-        text-align: center;
-        font-family: Arial, sans-serif;
-    `;
-
-    const messageElement = document.createElement('div');
-    messageElement.style.marginBottom = '10px';
-    messageElement.textContent = '準備中...';
-
-    const progressBar = document.createElement('div');
-    progressBar.style.cssText = `
-        width: 100%;
-        height: 20px;
-        background: #f0f0f0;
-        border-radius: 10px;
-        overflow: hidden;
-        margin-bottom: 10px;
-    `;
-
-    const progressFill = document.createElement('div');
-    progressFill.style.cssText = `
-        height: 100%;
-        background: linear-gradient(90deg, #4CAF50, #45a049);
-        width: 0%;
-        transition: width 0.3s ease;
-    `;
-    progressBar.appendChild(progressFill);
-
-    const percentElement = document.createElement('div');
-    percentElement.textContent = '0%';
-
-    const cancelButton = document.createElement('button');
-    cancelButton.textContent = 'キャンセル';
-    cancelButton.style.cssText = `
-        padding: 8px 16px;
-        margin-top: 10px;
-        border: none;
-        background: #f44336;
-        color: white;
-        border-radius: 4px;
-        cursor: pointer;
-    `;
-
-    progressContainer.appendChild(messageElement);
-    progressContainer.appendChild(progressBar);
-    progressContainer.appendChild(percentElement);
-    progressContainer.appendChild(cancelButton);
-    document.body.appendChild(progressContainer);
-
-    let cancelled = false;
-    cancelButton.onclick = () => {
-        cancelled = true;
-        document.body.removeChild(progressContainer);
-    };
-
-    try {
-        const success = await downloadGeoTiffWithWorker(demArray, geoTransform, filename, includeGeoInfo, (message, progress) => {
-            if (cancelled) return;
-
-            messageElement.textContent = message;
-            progressFill.style.width = `${progress}%`;
-            percentElement.textContent = `${progress.toFixed(0)}%`;
+        // WebWorkerにタスクを送信
+        worker.postMessage({
+            demArray: demArray,
+            geoTransform: geoTransform
         });
-
-        if (!cancelled) {
-            document.body.removeChild(progressContainer);
-        }
-
-        return success;
-    } catch (error) {
-        if (!cancelled) {
-            document.body.removeChild(progressContainer);
-        }
-        throw error;
-    }
+    });
 };
 
 // ドラッグアンドドロップ機能の初期化
@@ -333,8 +198,6 @@ function initializeDragAndDrop() {
 
                     const { geoTransform, demArray, imageSize } = geotiffData;
 
-                    // geotiffjsでgeotiffを作成
-
                     const elevationScale = 0.5; // 標高のスケールを調整するための係数
 
                     // 標高データを3Dメッシュに変換
@@ -354,7 +217,6 @@ function initializeDragAndDrop() {
                     // マテリアルの作成
                     const material = new THREE.MeshBasicMaterial({
                         color: 0x00ff00,
-
                         wireframe: true,
                     });
                     // メッシュの作成
@@ -365,18 +227,9 @@ function initializeDragAndDrop() {
 
                     console.log('DEM Mesh created successfully:', mesh);
 
-                    // シンプルなプログレスコールバック版
-                    await downloadTiffWithUI(
-                        demArray,
-                        geoTransform,
-                        'elevation_simple.tif',
-                        true, // 基本TIFF
-                        (message, progress) => {
-                            console.log(`${progress}%: ${message}`);
-                        },
-                    );
+                    // GeoTIFFダウンロード
+                    await downloadGeoTiffWithWorker(demArray, geoTransform, 'elevation.tif');
 
-                    // ここで成功時の処理を行う
                 } catch (error) {
                     console.error('Error creating DEM:', error);
                     alert('ZIPファイルの処理中にエラーが発生しました');
@@ -392,5 +245,3 @@ function initializeDragAndDrop() {
 document.addEventListener('DOMContentLoaded', () => {
     initializeDragAndDrop();
 });
-
-// ...existing code...
