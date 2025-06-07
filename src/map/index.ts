@@ -1,7 +1,9 @@
-import '../index.css';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Coordinates } from 'maplibre-gl';
+
+import type { GeoTransform } from '../demxml';
+import type { ImageSize } from '../geotiff';
 
 // 頂点シェーダー
 const vertexShaderSource = /* GLSL */ `#version 300 es
@@ -217,7 +219,7 @@ const processImage = async (map: maplibregl.Map) => {
 };
 
 // 地図インスタンスの初期化
-const map = new maplibregl.Map({
+export const mapLibreMap = new maplibregl.Map({
     container: 'map',
     style: {
         version: 8,
@@ -246,7 +248,15 @@ const map = new maplibregl.Map({
     zoom: 2,
 });
 
-map.on('load', async () => {
+export const addMapLayerFromDem = async (demArray: number[][], geoTransform: GeoTransform, imageSize: ImageSize) => {
+    if (!mapLibreMap) {
+        throw new Error('MapLibre map instance is not initialized.');
+    }
+
+    console.log('Adding DEM layer to MapLibre map...');
+};
+
+mapLibreMap.on('load', async () => {
     // const { coordinates } = getMapBounds(map);
     // // ソース追加
     // map.addSource('canvas-source', {

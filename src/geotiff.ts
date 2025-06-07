@@ -1,7 +1,7 @@
 import type { Dem, MetaData } from './demxml';
 
 // GeoTIFF生成用の型定義
-interface ImageSize {
+export interface ImageSize {
     x: number;
     y: number;
 }

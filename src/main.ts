@@ -3,11 +3,9 @@ import './style.css';
 import { createDemFromZipUpload } from './demxml';
 import { createGeoTiffFromDem } from './geotiff';
 
-import * as THREE from 'three';
-import { TrackballControls } from 'three/examples/jsm/controls/TrackballControls.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
 import GeoTIFF, { writeArrayBuffer } from 'geotiff';
+import { mapLibreMap, addMapLayerFromDem } from './map';
+import type { GeoTransform } from './demxml';
 
 // キャンバス
 const canvas = document.getElementById('three-canvas') as HTMLCanvasElement;
@@ -18,6 +16,8 @@ const offscreenCanvas = canvas.transferControlToOffscreen();
 const threeCanvasWorker = new Worker(new URL('./worker/threeCanvasWorker.ts', import.meta.url), {
     type: 'module',
 });
+
+mapLibreMap.on('load', async () => {});
 
 // オフスクリーンレンダリングを使用する場合は、以下のように設定
 
@@ -125,7 +125,7 @@ canvas.addEventListener('touchend', (event) => {
 });
 
 // シンプルなWebWorker TIFF作成
-const downloadGeoTiffWithWorker = async (demArray: number[][], geoTransform: number[], filename: string = 'elevation.tif'): Promise<boolean> => {
+const downloadGeoTiffWithWorker = async (demArray: number[][], geoTransform: GeoTransform, filename: string = 'elevation.tif'): Promise<boolean> => {
     return new Promise((resolve, reject) => {
         console.log('🚀 Starting WebWorker TIFF creation...');
         console.log(`📊 Dimensions: ${demArray[0]?.length} × ${demArray.length}`);
@@ -274,6 +274,8 @@ function initializeDragAndDrop() {
                         geoTransform: geoTransform,
                         imageSize: imageSize,
                     });
+
+                    // await addMapLayerFromDem(demArray, geoTransform, imageSize);
                 } catch (error) {
                     console.error('ファイル処理エラー:', error);
                     alert('ファイルの読み込みに失敗しました。');
@@ -323,15 +325,15 @@ function initializeDragAndDrop() {
                     const geotiffData = await createGeoTiffFromDem(dem);
                     const { geoTransform, demArray, imageSize } = geotiffData;
 
+                    // GeoTIFFダウンロード
+                    await downloadGeoTiffWithWorker(demArray, geoTransform, 'elevation.tif');
+
                     threeCanvasWorker.postMessage({
                         type: 'addMesh',
                         demArray: demArray,
                         geoTransform: geoTransform,
                         imageSize: imageSize,
                     });
-
-                    // GeoTIFFダウンロード
-                    // await downloadGeoTiffWithWorker(demArray, geoTransform, 'elevation.tif');
                 } catch (error) {
                     console.error('Error creating DEM:', error);
                     alert('ZIPファイルの処理中にエラーが発生しました');

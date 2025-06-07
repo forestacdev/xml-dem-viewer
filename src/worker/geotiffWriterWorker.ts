@@ -1,13 +1,4 @@
-// GeoTransformの型定義
-interface GeoTransform {
-    upperLeftX: number;
-    pixelSizeX: number;
-    rotationX: number;
-    upperLeftY: number;
-    rotationY: number;
-    pixelSizeY: number;
-}
-
+import type { GeoTransform } from '../demxml';
 // GeoTIFF作成関数
 const createGeoTiffBufferWorker = (demArray: number[][], geoTransform: GeoTransform): ArrayBuffer => {
     const height = demArray.length;
