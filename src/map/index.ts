@@ -128,6 +128,9 @@ const processCanvas = (option: CanvasOptions) => {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
+    const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+    gl.uniform2f(resolutionLocation, width, height);
+
     // 追加：テクスチャサンプラーのユニフォームを設定
     const textureUniformLocation = gl.getUniformLocation(program, "u_texArray");
     gl.uniform1i(textureUniformLocation, 0); // TEXTURE0を使用
@@ -139,6 +142,9 @@ const processCanvas = (option: CanvasOptions) => {
     gl.uniform1f(minUniformLocation, min);
     const maxUniformLocation = gl.getUniformLocation(program, "u_max");
     gl.uniform1f(maxUniformLocation, max);
+
+    const demTypeUniformLocation = gl.getUniformLocation(program, "u_dem_type");
+    gl.uniform1i(demTypeUniformLocation, 0); // DEMタイプを0に設定（例: 標高）
 
     // WebGLで描画
     gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -223,6 +229,11 @@ export const addMapLayerFromDem = async (geotiffData: GeoTiffData) => {
 
     await processCanvas(option);
 
+    if (mapLibreMap.getSource("canvas-source")) {
+        mapLibreMap.removeLayer("canvas-layer");
+        // 既存のソースがある場合は削除
+        mapLibreMap.removeSource("canvas-source");
+    }
     // ソース追加
     mapLibreMap.addSource("canvas-source", {
         type: "canvas",

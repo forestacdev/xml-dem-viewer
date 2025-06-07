@@ -1,9 +1,9 @@
-import { uniforms } from './threeCanvasWorker';
+import { uniforms } from "./threeCanvasWorker";
 
-import fragmentShader from './shaders/fragment.glsl?raw';
-import vertexShader from './shaders/vertex.glsl?raw';
-import type { ImageSize, GeoTransform } from '../geotiff';
-import * as THREE from 'three';
+import fragmentShader from "./shaders/fragment.glsl?raw";
+import vertexShader from "./shaders/vertex.glsl?raw";
+import type { ImageSize, GeoTransform } from "../utils/geotiff";
+import * as THREE from "three";
 
 export const demMaterial = new THREE.ShaderMaterial({
     uniforms,
@@ -13,13 +13,17 @@ export const demMaterial = new THREE.ShaderMaterial({
     transparent: true,
 });
 
-export const generateDemMesh = (demArray: number[][], geoTransform: GeoTransform, imageSize: ImageSize): THREE.Mesh => {
+export const generateDemMesh = (
+    demArray: number[][],
+    geoTransform: GeoTransform,
+    imageSize: ImageSize,
+): THREE.Mesh => {
     // DEMデータのサイズを取得
     const height = demArray.length;
     const width = demArray[0]?.length || 0;
 
     if (width === 0 || height === 0) {
-        console.error('Invalid DEM data dimensions');
+        console.error("Invalid DEM data dimensions");
         return new THREE.Mesh(); // 空のメッシュを返す
     }
 
@@ -50,8 +54,12 @@ export const generateDemMesh = (demArray: number[][], geoTransform: GeoTransform
         // 標高も同じスケールを適用
         elevationScale = averageScale;
 
-        console.log(`📏 実ピクセルサイズ: ${pixelSizeMetersX.toFixed(2)}m × ${pixelSizeMetersY.toFixed(2)}m`);
-        console.log(`📏 メッシュピクセルサイズ: ${meshPixelSizeX.toFixed(4)} × ${meshPixelSizeY.toFixed(4)}`);
+        console.log(
+            `📏 実ピクセルサイズ: ${pixelSizeMetersX.toFixed(2)}m × ${pixelSizeMetersY.toFixed(2)}m`,
+        );
+        console.log(
+            `📏 メッシュピクセルサイズ: ${meshPixelSizeX.toFixed(4)} × ${meshPixelSizeY.toFixed(4)}`,
+        );
         console.log(`📏 スケール比率: ${averageScale.toFixed(6)}`);
         console.log(`📏 elevationScale: ${elevationScale.toFixed(6)}`);
     }
@@ -78,7 +86,7 @@ export const generateDemMesh = (demArray: number[][], geoTransform: GeoTransform
             vertices[k + 2] = z;
         }
     }
-    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
 
     // UV座標の計算とセット（テクスチャマッピング用）
     const uvs = new Float32Array(width * height * 2);
@@ -92,7 +100,7 @@ export const generateDemMesh = (demArray: number[][], geoTransform: GeoTransform
             uvs[k + 1] = v;
         }
     }
-    geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+    geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
 
     // インデックス配列の作成（三角形を定義）
     const quadCount = (width - 1) * (height - 1);
@@ -123,7 +131,7 @@ export const generateDemMesh = (demArray: number[][], geoTransform: GeoTransform
 
     // メッシュを作成
     const mesh = new THREE.Mesh(geometry, demMaterial);
-    mesh.name = 'demMesh';
+    mesh.name = "demMesh";
 
     return mesh;
 };
