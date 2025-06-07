@@ -234,7 +234,7 @@ const processFile = async (file: File) => {
 
             console.log(statistics);
 
-            await addMapLayerFromDem(demArray, geoTransform, imageSize);
+            await addMapLayerFromDem(geotiffData);
 
             // GeoTIFFダウンロード
             await downloadGeoTiffWithWorker(demArray, geoTransform, 'elevation.tif');
