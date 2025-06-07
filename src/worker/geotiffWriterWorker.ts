@@ -156,11 +156,11 @@ const createGeoTiffBufferWorker = (demArray: number[][], geoTransform: GeoTransf
 };
 
 // WebWorkerのメッセージハンドラー
-self.onmessage = function (e) {
+self.onmessage = (e) => {
     const { demArray, geoTransform } = e.data;
 
     try {
-        postMessage({ type: 'progress', message: 'GeoTIFF処理開始...', progress: 0 });
+        self.postMessage({ type: 'progress', message: 'GeoTIFF処理開始...', progress: 0 });
 
         // データ検証
         if (!demArray || !demArray.length || !demArray[0] || !demArray[0].length) {
@@ -171,20 +171,20 @@ self.onmessage = function (e) {
             throw new Error('Invalid geoTransform data (must be array of 6 elements)');
         }
 
-        postMessage({
+        self.postMessage({
             type: 'info',
             message: `処理データ: ${demArray[0].length} × ${demArray.length} pixels`,
         });
 
         const buffer = createGeoTiffBufferWorker(demArray, geoTransform);
 
-        postMessage({
+        self.postMessage({
             type: 'complete',
             buffer: buffer,
             message: 'GeoTIFF作成完了',
         });
     } catch (error) {
-        postMessage({
+        self.postMessage({
             type: 'error',
             error: error.message,
             stack: error.stack,
@@ -193,21 +193,21 @@ self.onmessage = function (e) {
 };
 
 // WebWorkerのメッセージハンドラー
-self.onmessage = function (e) {
+self.onmessage = (e) => {
     const { type, demArray, geoTransform, includeGeoInfo } = e.data;
 
     try {
-        postMessage({ type: 'progress', message: '処理開始...', progress: 0 });
+        self.postMessage({ type: 'progress', message: '処理開始...', progress: 0 });
 
         let buffer = createGeoTiffBufferWorker(demArray, geoTransform);
 
-        postMessage({
+        self.postMessage({
             type: 'complete',
             buffer: buffer,
             message: 'TIFF作成完了',
         });
     } catch (error) {
-        postMessage({
+        self.postMessage({
             type: 'error',
             error: error.message,
             stack: error.stack,

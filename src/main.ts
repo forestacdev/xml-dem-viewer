@@ -13,7 +13,7 @@ import GeoTIFF, { writeArrayBuffer } from 'geotiff';
 const scene = new THREE.Scene();
 
 // カメラ
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100000);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
 
 camera.position.set(100, 100, 100);
 scene.add(camera);
@@ -74,17 +74,13 @@ const animate = () => {
 animate();
 
 // シンプルなWebWorker TIFF作成
-const downloadGeoTiffWithWorker = async (
-    demArray: number[][],
-    geoTransform: number[],
-    filename: string = 'elevation.tif'
-): Promise<boolean> => {
+const downloadGeoTiffWithWorker = async (demArray: number[][], geoTransform: number[], filename: string = 'elevation.tif'): Promise<boolean> => {
     return new Promise((resolve, reject) => {
         console.log('🚀 Starting WebWorker TIFF creation...');
         console.log(`📊 Dimensions: ${demArray[0]?.length} × ${demArray.length}`);
 
         // WebWorker作成
-        const worker = new Worker(new URL('./worker.ts', import.meta.url), {
+        const worker = new Worker(new URL('./worker/geotiffWriterWorker.ts', import.meta.url), {
             type: 'module',
         });
 
@@ -147,7 +143,7 @@ const downloadGeoTiffWithWorker = async (
         // WebWorkerにタスクを送信
         worker.postMessage({
             demArray: demArray,
-            geoTransform: geoTransform
+            geoTransform: geoTransform,
         });
     });
 };
@@ -229,7 +225,6 @@ function initializeDragAndDrop() {
 
                     // GeoTIFFダウンロード
                     await downloadGeoTiffWithWorker(demArray, geoTransform, 'elevation.tif');
-
                 } catch (error) {
                     console.error('Error creating DEM:', error);
                     alert('ZIPファイルの処理中にエラーが発生しました');
