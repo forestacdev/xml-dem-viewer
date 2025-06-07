@@ -1,9 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import fragmentShader from '../shaders/fragment.glsl?raw';
-import vertexShader from '../shaders/vertex.glsl?raw';
 
 import type { ImageSize, GeoTransform } from '../geotiff';
+import { generateDemMesh } from './mesh';
 
 let renderer: THREE.WebGLRenderer;
 let camera: THREE.PerspectiveCamera;
@@ -13,8 +12,6 @@ let orbitControls: OrbitControls;
 type MessageType = 'init' | 'addMesh' | 'resize' | 'mouseEvent' | 'wheelEvent' | 'toggleView';
 
 type MouseEventType = 'mousedown' | 'mousemove' | 'mouseup' | 'wheel';
-
-export type ViewMode = 'map' | '3d';
 
 interface Props {
     data: {
@@ -35,18 +32,12 @@ interface Props {
     };
 }
 
-const demMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-        uColor: { value: new THREE.Color('rgb(255,255,255)') },
-    },
-    // 頂点シェーダー
-    vertexShader,
-    fragmentShader,
-    transparent: true,
-});
+export const uniforms = {
+    uColor: { value: new THREE.Color('rgb(255,255,255)') },
+};
 
 // メインスレッドから通達があったとき
-onmessage = (event) => {
+self.onmessage = (event) => {
     switch (event.data.type) {
         case 'init':
             init(event);
@@ -115,22 +106,20 @@ const init = (event: Props) => {
 
     resize(width, height, devicePixelRatio);
 
-    tick();
-
     // 毎フレーム時に実行されるループイベントです
-    function tick() {
+    const tick = () => {
         const target = orbitControls.target;
 
         // レンダリング
         if (orbitControls) orbitControls.update();
         renderer.render(scene, camera);
         requestAnimationFrame(tick);
-    }
+    };
+    tick();
 };
 
 // ダミーDOM要素を作成してイベントハンドリングを可能にする
-
-function createDummyDomElement(width: number, height: number) {
+const createDummyDomElement = (width: number, height: number) => {
     const dummyDocument = {
         pointerLockElement: null,
         addEventListener: () => {},
@@ -249,10 +238,10 @@ function createDummyDomElement(width: number, height: number) {
     };
 
     return dummyElement;
-}
+};
 
 // マウスイベントを処理
-function handleMouseEvent(eventData: any) {
+const handleMouseEvent = (eventData: any) => {
     const { type, clientX, clientY, button, buttons, eventType } = eventData;
 
     // OrbitControlsの内部状態を直接操作
@@ -281,10 +270,10 @@ function handleMouseEvent(eventData: any) {
             stopPropagation: () => {},
         });
     }
-}
+};
 
 // ホイールイベントを処理
-function handleWheelEvent(eventData: any) {
+const handleWheelEvent = (eventData: any) => {
     const { deltaY } = eventData;
 
     // @ts-ignore
@@ -293,7 +282,7 @@ function handleWheelEvent(eventData: any) {
         preventDefault: () => {},
         stopPropagation: () => {},
     });
-}
+};
 
 const addMesh = (demArray: number[][], geoTransform: GeoTransform, imageSize: ImageSize) => {
     // 既存のメッシュをクリア
@@ -304,118 +293,9 @@ const addMesh = (demArray: number[][], geoTransform: GeoTransform, imageSize: Im
         ((existingMesh as THREE.Mesh).material as THREE.Material).dispose();
     }
 
-    // DEMデータのサイズを取得
-    const height = demArray.length;
-    const width = demArray[0]?.length || 0;
+    const demMesh = generateDemMesh(demArray, geoTransform, imageSize);
 
-    if (width === 0 || height === 0) {
-        console.error('Invalid DEM data dimensions');
-        return;
-    }
-
-    // ピクセル解像度（スケール調整）
-    const dx = imageSize.x / width;
-    const dy = imageSize.y / height;
-    // geoTransformのピクセルサイズを使ってelevationScaleを計算
-    let elevationScale = 0.25; // デフォルト値
-
-    if (geoTransform) {
-        const pixelSizeX = Math.abs(geoTransform.pixelSizeX); // 度単位
-        const pixelSizeY = Math.abs(geoTransform.pixelSizeY); // 度単位
-
-        // 度をメートルに変換（緯度35度付近）
-        const metersPerDegree = 111000; // 約111km/度
-        const pixelSizeMetersX = pixelSizeX * metersPerDegree; // 約6.2m
-        const pixelSizeMetersY = pixelSizeY * metersPerDegree; // 約6.2m
-
-        // Three.js空間でのピクセルあたりの距離
-        const meshPixelSizeX = dx; // Three.js空間でのX方向ピクセルサイズ
-        const meshPixelSizeY = dy; // Three.js空間でのY方向ピクセルサイズ
-
-        // 実距離とメッシュ距離の比率
-        const scaleX = meshPixelSizeX / pixelSizeMetersX;
-        const scaleY = meshPixelSizeY / pixelSizeMetersY;
-        const averageScale = (scaleX + scaleY) / 2;
-
-        // 標高も同じスケールを適用
-        elevationScale = averageScale;
-
-        console.log(`📏 実ピクセルサイズ: ${pixelSizeMetersX.toFixed(2)}m × ${pixelSizeMetersY.toFixed(2)}m`);
-        console.log(`📏 メッシュピクセルサイズ: ${meshPixelSizeX.toFixed(4)} × ${meshPixelSizeY.toFixed(4)}`);
-        console.log(`📏 スケール比率: ${averageScale.toFixed(6)}`);
-        console.log(`📏 elevationScale: ${elevationScale.toFixed(6)}`);
-    }
-
-    // BufferGeometry作成
-    const geometry = new THREE.BufferGeometry();
-
-    // ラスターの中心座標を原点にするためのオフセット
-    const xOffset = (width * dx) / 2;
-    const zOffset = (height * dy) / 2;
-
-    // 頂点座標の計算
-    const vertices = new Float32Array(width * height * 3);
-    for (let i = 0; i < height; i++) {
-        for (let j = 0; j < width; j++) {
-            const index = i * width + j;
-            const x = j * dx - xOffset;
-            const elevation = demArray[i][j] === -9999 ? 0 : demArray[i][j];
-            const y = elevation * elevationScale;
-            const z = i * dy - zOffset;
-            const k = index * 3;
-            vertices[k] = x;
-            vertices[k + 1] = y;
-            vertices[k + 2] = z;
-        }
-    }
-    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-
-    // UV座標の計算とセット（テクスチャマッピング用）
-    const uvs = new Float32Array(width * height * 2);
-    for (let i = 0; i < height; i++) {
-        for (let j = 0; j < width; j++) {
-            const index = i * width + j;
-            const u = j / (width - 1);
-            const v = i / (height - 1);
-            const k = index * 2;
-            uvs[k] = u;
-            uvs[k + 1] = v;
-        }
-    }
-    geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
-
-    // インデックス配列の作成（三角形を定義）
-    const quadCount = (width - 1) * (height - 1);
-    const indices = new Uint32Array(quadCount * 6);
-    let p = 0;
-    for (let i = 0; i < height - 1; i++) {
-        for (let j = 0; j < width - 1; j++) {
-            const a = i * width + j;
-            const b = a + width;
-            const c = a + 1;
-            const d = b + 1;
-
-            // 三角形1: a, b, c
-            indices[p++] = a;
-            indices[p++] = b;
-            indices[p++] = c;
-
-            // 三角形2: b, d, c
-            indices[p++] = b;
-            indices[p++] = d;
-            indices[p++] = c;
-        }
-    }
-    geometry.setIndex(new THREE.BufferAttribute(indices, 1));
-
-    // 法線ベクトルを計算（陰影効果のため）
-    geometry.computeVertexNormals();
-
-    // メッシュを作成
-    const mesh = new THREE.Mesh(geometry, demMaterial);
-    mesh.name = 'demMesh';
-
-    scene.add(mesh);
+    scene.add(demMesh);
 
     // カメラ位置を調整
     camera.position.set(imageSize.x * 0.5, imageSize.y * 0.5, Math.max(imageSize.x, imageSize.y));

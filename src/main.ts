@@ -3,18 +3,15 @@ import './style.css';
 import { createDemFromZipUpload } from './demxml';
 import { createGeoTiffFromDem } from './geotiff';
 
-import GeoTIFF, { writeArrayBuffer } from 'geotiff';
 import { mapLibreMap, addMapLayerFromDem, toggleMapView } from './map';
 import type { GeoTransform } from './geotiff';
-import type { ViewMode } from './worker/threeCanvasWorker';
 
 // キャンバス
 const canvas = document.getElementById('three-canvas') as HTMLCanvasElement;
-
 const offscreenCanvas = canvas.transferControlToOffscreen();
 
 // WebWorkerを使用してオフスクリーンレンダリングを行う
-const threeCanvasWorker = new Worker(new URL('./worker/threeCanvasWorker.ts', import.meta.url), {
+const threeCanvasWorker = new Worker(new URL('./three/threeCanvasWorker.ts', import.meta.url), {
     type: 'module',
 });
 
@@ -319,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const toggleViewButton = document.getElementById('toggle-view-button');
 
-let isViewMpde: ViewMode = 'map'; // 初期状態は3Dビュー
+let isViewMpde: 'map' | '3d' = 'map'; // 初期状態は3Dビュー
 
 if (toggleViewButton) {
     toggleViewButton.addEventListener('click', () => {
