@@ -16,6 +16,12 @@ void main() {
     vec2 uv = v_tex_coord;
 	float value = texture(u_texArray, uv).r;
 
+    if(value == -9999.0) {
+        // -9999 の場合は透明にする
+        fragColor = vec4(0.0, 0.0, 0.0, 0.0);
+        return;
+    }
+
 	float normalized = clamp((value - u_min) / (u_max - u_min), 0.0, 1.0);
     
     // グレースケールで出力

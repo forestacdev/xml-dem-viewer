@@ -51,7 +51,7 @@ const createProgram = (gl: WebGLRenderingContext, vertexShader: WebGLShader, fra
 // キャンバスとWebGLコンテキストの初期化
 const canvas = document.createElement('canvas');
 document.body.appendChild(canvas);
-canvas.style.display = 'none'; // 非表示にする
+// canvas.style.display = 'none'; // 非表示にする
 
 if (!canvas) {
     throw new Error('Canvas element with id "my-canvas" not found.');
@@ -88,11 +88,14 @@ const processCanvas = (option: CanvasOptions) => {
 
     const { array, bbox, height, width, min, max } = option;
 
+    console.log(array);
+
     // キャンバスサイズを合わせる
     canvas.width = width;
     canvas.height = height;
     gl.viewport(0, 0, canvas.width, canvas.height);
 
+    // テクスチャを作成し既存キャンバスを読み込む
     // テクスチャを作成し既存キャンバスを読み込む
     const texture = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
@@ -117,8 +120,9 @@ const processCanvas = (option: CanvasOptions) => {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-    // バインドを解除
-    gl.bindTexture(gl.TEXTURE_2D, null);
+    // 追加：テクスチャサンプラーのユニフォームを設定
+    const textureUniformLocation = gl.getUniformLocation(program, 'u_texArray');
+    gl.uniform1i(textureUniformLocation, 0); // TEXTURE0を使用
 
     const bboxUniformLocation = gl.getUniformLocation(program, 'u_bbox_4326');
     gl.uniform4fv(bboxUniformLocation, bbox);
@@ -130,37 +134,6 @@ const processCanvas = (option: CanvasOptions) => {
 
     // WebGLで描画
     gl.drawArrays(gl.TRIANGLES, 0, 6);
-};
-
-const getMapBounds = (map: maplibregl.Map) => {
-    const bbox = map.getBounds();
-    const boxArray = [bbox._sw.lng, bbox._sw.lat, bbox._ne.lng, bbox._ne.lat] as [number, number, number, number];
-    const coordinates: Coordinates = [
-        [bbox._sw.lng, bbox._ne.lat],
-        [bbox._ne.lng, bbox._ne.lat],
-        [bbox._ne.lng, bbox._sw.lat],
-        [bbox._sw.lng, bbox._sw.lat],
-    ];
-
-    return {
-        bbox,
-        boxArray,
-        coordinates,
-    };
-};
-
-// 画像データ取得と処理の共通化
-const processImage = async (option: CanvasOptions) => {
-    const { height, width } = option;
-
-    // WebGL処理
-    processCanvas(option);
-
-    // キャンバスサイズ更新
-    canvas.width = width;
-    canvas.height = height;
-
-    // return { dataCanvas, coordinates };
 };
 
 // 地図インスタンスの初期化
