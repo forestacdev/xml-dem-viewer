@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import type { ParseXmlTask, ParseXmlResult } from './xmlParseWorker';
 
 // 型定義
 interface LowerCorner {
@@ -56,8 +57,6 @@ interface NpArrayData {
     array: number[][];
 }
 
-import type { ParseXmlTask, ParseXmlResult } from './worker/xmlParseWorker';
-
 export class ParallelXmlParser {
     private workers: Worker[] = [];
     private readonly maxWorkers = 4;
@@ -65,7 +64,7 @@ export class ParallelXmlParser {
     constructor() {
         // 4つのWorkerを初期化
         for (let i = 0; i < this.maxWorkers; i++) {
-            const worker = new Worker(new URL('./worker/xmlParseWorker.ts', import.meta.url), {
+            const worker = new Worker(new URL('./xmlParseWorker.ts', import.meta.url), {
                 type: 'module',
             });
             this.workers.push(worker);
@@ -166,7 +165,7 @@ export class Dem {
 
     // メインの処理メソッド - 並列処理版
     public async contentsToArray(): Promise<void> {
-        console.log(`🚀 Starting parallel XML parsing with ${this.xmlTexts.length} files`);
+        console.log(`Starting parallel XML parsing with ${this.xmlTexts.length} files`);
 
         const parser = new ParallelXmlParser();
 
@@ -177,7 +176,7 @@ export class Dem {
             // メッシュコードでソート（地理的順序を保証）
             this.allContentList.sort((a, b) => a.mesh_code - b.mesh_code);
 
-            console.log(`✅ Parallel XML parsing completed: ${this.allContentList.length} files processed`);
+            console.log(`Parallel XML parsing completed: ${this.allContentList.length} files processed`);
 
             this.getMetadataList();
             this.storeNpArrayList();

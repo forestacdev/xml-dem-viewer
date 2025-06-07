@@ -280,7 +280,7 @@ export class GeoTiffGenerator {
     }
 }
 
-// 使用例とヘルパー関数
+// ヘルパー関数
 export const createGeoTiffFromDem = async (dem: Dem, onProgress?: (current: number, total: number, message: string) => void): Promise<GeoTiffData> => {
     const generator = new GeoTiffGenerator(dem, onProgress);
     const geoTiffData = generator.makeDataForGeoTiff();
@@ -290,65 +290,4 @@ export const createGeoTiffFromDem = async (dem: Dem, onProgress?: (current: numb
         ...geoTiffData,
         statistics,
     };
-};
-
-// Canvas描画用のヘルパー関数
-export const renderDemToCanvas = (demArray: number[][], canvas: HTMLCanvasElement, colorScale: (elevation: number) => string = defaultColorScale): void => {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Cannot get canvas context');
-
-    const width = demArray[0]?.length || 0;
-    const height = demArray.length;
-
-    canvas.width = width;
-    canvas.height = height;
-
-    const imageData = ctx.createImageData(width, height);
-    const data = imageData.data;
-
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            const elevation = demArray[y][x];
-            const pixelIndex = (y * width + x) * 4;
-
-            if (elevation === -9999) {
-                // 無効データは透明
-                data[pixelIndex] = 0; // R
-                data[pixelIndex + 1] = 0; // G
-                data[pixelIndex + 2] = 0; // B
-                data[pixelIndex + 3] = 0; // A
-            } else {
-                const color = colorScale(elevation);
-                const rgb = hexToRgb(color);
-                data[pixelIndex] = rgb.r; // R
-                data[pixelIndex + 1] = rgb.g; // G
-                data[pixelIndex + 2] = rgb.b; // B
-                data[pixelIndex + 3] = 255; // A
-            }
-        }
-    }
-
-    ctx.putImageData(imageData, 0, 0);
-};
-
-// デフォルトの色スケール（標高に応じた色付け）
-const defaultColorScale = (elevation: number): string => {
-    if (elevation < 0) return '#0066cc'; // 海
-    if (elevation < 100) return '#00cc66'; // 低地
-    if (elevation < 500) return '#66cc00'; // 丘陵
-    if (elevation < 1000) return '#cccc00'; // 山地
-    if (elevation < 2000) return '#cc6600'; // 高山
-    return '#cc0000'; // 高峰
-};
-
-// HEXカラーをRGBに変換
-const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result
-        ? {
-              r: parseInt(result[1], 16),
-              g: parseInt(result[2], 16),
-              b: parseInt(result[3], 16),
-          }
-        : { r: 0, g: 0, b: 0 };
 };

@@ -1,10 +1,11 @@
 import './style.css';
 
-import { createDemFromZipUpload } from './demxml';
-import { createGeoTiffFromDem } from './geotiff';
+import { createDemFromZipUpload } from './utils/demxml';
+import { createGeoTiffFromDem } from './utils/geotiff';
+
+import type { GeoTransform } from './utils/geotiff';
 
 import { mapLibreMap, addMapLayerFromDem, toggleMapView } from './map';
-import type { GeoTransform } from './geotiff';
 
 // キャンバス
 const canvas = document.getElementById('three-canvas') as HTMLCanvasElement;
@@ -15,10 +16,7 @@ const threeCanvasWorker = new Worker(new URL('./three/threeCanvasWorker.ts', imp
     type: 'module',
 });
 
-mapLibreMap.on('load', async () => {});
-
-// オフスクリーンレンダリングを使用する場合は、以下のように設定
-
+// 初期化
 threeCanvasWorker.postMessage(
     {
         type: 'init',
@@ -30,6 +28,7 @@ threeCanvasWorker.postMessage(
     [offscreenCanvas],
 );
 
+// リザイズ
 window.addEventListener('resize', (event) => {
     threeCanvasWorker.postMessage({
         type: 'resize',
@@ -129,7 +128,7 @@ const downloadGeoTiffWithWorker = async (demArray: number[][], geoTransform: Geo
         console.log(`📊 Dimensions: ${demArray[0]?.length} × ${demArray.length}`);
 
         // WebWorker作成
-        const worker = new Worker(new URL('./worker/geotiffWriterWorker.ts', import.meta.url), {
+        const worker = new Worker(new URL('./utils/geotiffWriterWorker.ts', import.meta.url), {
             type: 'module',
         });
 
@@ -200,7 +199,7 @@ const downloadGeoTiffWithWorker = async (demArray: number[][], geoTransform: Geo
 const processFile = async (file: File) => {
     if (file.type === 'application/zip' || file.name.endsWith('.zip')) {
         try {
-            console.log('🚀 Starting DEM processing...');
+            console.log('Starting DEM processing...');
             const startTime = performance.now();
 
             // プログレスコールバックを定義
@@ -253,7 +252,7 @@ const processFile = async (file: File) => {
 };
 
 // ドラッグアンドドロップ機能の初期化
-function initializeDragAndDrop() {
+const initializeDragAndDrop = () => {
     const dropZone = document.getElementById('drop-zone');
     if (!dropZone) return;
 
@@ -307,7 +306,7 @@ function initializeDragAndDrop() {
             processFile(file);
         }
     });
-}
+};
 
 // DOMが読み込まれた後に初期化
 document.addEventListener('DOMContentLoaded', () => {
