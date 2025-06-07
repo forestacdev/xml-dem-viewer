@@ -8,7 +8,7 @@ interface GeoTransform {
     pixelSizeY: number;
 }
 
-// WebWorker用のGeoTIFF作成関数
+// GeoTIFF作成関数
 const createGeoTiffBufferWorker = (demArray: number[][], geoTransform: GeoTransform): ArrayBuffer => {
     const height = demArray.length;
     const width = demArray[0].length;
@@ -59,11 +59,14 @@ const createGeoTiffBufferWorker = (demArray: number[][], geoTransform: GeoTransf
 
     // オフセット計算
     const tiffHeaderSize = 8;
-    const ifdEntryCount = 17;
+    const ifdEntryCount = 18;
     const ifdSize = 2 + ifdEntryCount * 12 + 4;
 
     const geoKeyDirectoryOffset = tiffHeaderSize + ifdSize;
-    const modelPixelScaleOffset = geoKeyDirectoryOffset + geoKeyDirectory.length * 2;
+    // NODATA値を文字列として格納するためのオフセット
+    const nodataString = '-9999';
+    const nodataStringOffset = geoKeyDirectoryOffset + geoKeyDirectory.length * 2;
+    const modelPixelScaleOffset = nodataStringOffset + nodataString.length + 1; // null終端を含む
     const modelTiepointOffset = modelPixelScaleOffset + 3 * 8;
     const imageDataOffset = modelTiepointOffset + 6 * 8;
 
@@ -116,6 +119,7 @@ const createGeoTiffBufferWorker = (demArray: number[][], geoTransform: GeoTransf
     writeIFDEntry(33550, 12, 3, modelPixelScaleOffset); // ModelPixelScaleTag
     writeIFDEntry(33922, 12, 6, modelTiepointOffset); // ModelTiepointTag
     writeIFDEntry(34735, 3, geoKeyDirectory.length, geoKeyDirectoryOffset); // GeoKeyDirectoryTag
+    writeIFDEntry(42113, 2, nodataString.length + 1, nodataStringOffset); // GDAL_NODATA
 
     // Next IFD offset (0 = no more IFDs)
     view.setUint32(offset, 0, true);
@@ -123,6 +127,11 @@ const createGeoTiffBufferWorker = (demArray: number[][], geoTransform: GeoTransf
     // === GeoKeyDirectory ===
     const geoKeyView = new Uint16Array(buffer, geoKeyDirectoryOffset, geoKeyDirectory.length);
     geoKeyView.set(geoKeyDirectory);
+
+    // === NODATA文字列 ===
+    const nodataBytes = new TextEncoder().encode(nodataString + '\0'); // null終端
+    const nodataView = new Uint8Array(buffer, nodataStringOffset, nodataBytes.length);
+    nodataView.set(nodataBytes);
 
     // === ModelPixelScale ===
     for (let i = 0; i < 3; i++) {

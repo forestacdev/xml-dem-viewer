@@ -345,7 +345,8 @@ function initializeDragAndDrop() {
                     for (let i = 0; i < vertices.length; i += 3) {
                         const x = Math.floor(i / 3) % imageSize.x;
                         const y = Math.floor(i / 3 / imageSize.x);
-                        vertices[i + 2] = demArray[y][x] * elevationScale; // Z座標に標高を適用
+                        const h = demArray[y][x] === -9999 ? 0 : demArray[y][x];
+                        vertices[i + 2] = h * elevationScale; // Z座標に標高を適用
                     }
 
                     geometry.attributes.position.needsUpdate = true;
@@ -365,7 +366,7 @@ function initializeDragAndDrop() {
                     console.log('DEM Mesh created successfully:', mesh);
 
                     // シンプルなプログレスコールバック版
-                    await downloadGeoTiffWithWorker(
+                    await downloadTiffWithUI(
                         demArray,
                         geoTransform,
                         'elevation_simple.tif',
