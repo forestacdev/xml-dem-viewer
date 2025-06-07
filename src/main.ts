@@ -188,7 +188,6 @@ function initializeDragAndDrop() {
             if (file.type === 'application/zip' || file.name.endsWith('.zip')) {
                 try {
                     const dem = await createDemFromZipUpload(file);
-                    console.log('DEM created successfully:', dem);
 
                     const geotiffData = await createGeoTiffFromDem(dem);
 

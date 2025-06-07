@@ -291,47 +291,8 @@ export class Dem {
     }
 }
 
-// ブラウザ用：フォルダアップロードからDEMオブジェクトを作成
-export const createDemFromFolderUpload = async (files: FileList | File[], seaAtZero: boolean = false, onProgress?: (current: number, total: number, fileName: string) => void): Promise<Dem> => {
-    const fileArray = Array.from(files);
-
-    // XMLファイルのみをフィルタリング
-    const xmlFiles = fileArray.filter((file) => file.name.toLowerCase().endsWith('.xml'));
-
-    if (xmlFiles.length === 0) {
-        throw new DemInputXmlException('No XML files found in the uploaded files.');
-    }
-
-    // 各XMLファイルを読み込み
-    const xmlStrings: string[] = [];
-
-    for (let i = 0; i < xmlFiles.length; i++) {
-        const file = xmlFiles[i];
-
-        // 進捗報告
-        if (onProgress) {
-            onProgress(i + 1, xmlFiles.length, file.name);
-        }
-
-        try {
-            const xmlContent = await readFileAsText(file);
-            xmlStrings.push(xmlContent);
-        } catch (error) {
-            throw new DemInputXmlException(`Failed to read XML file: ${file.name}`);
-        }
-    }
-
-    // DEMオブジェクトの作成と処理
-    const dem = new Dem(xmlStrings, seaAtZero);
-    await dem.contentsToArray();
-
-    return dem;
-};
-
 // ブラウザ用：ZIPファイルからDEMオブジェクトを作成
 export const createDemFromZipUpload = async (zipFile: File, seaAtZero: boolean = false, onProgress?: (current: number, total: number, fileName: string) => void): Promise<Dem> => {
-    // 動的にJSZipをインポート（使用時のみロード）
-
     try {
         const zip = await JSZip.loadAsync(zipFile);
         const xmlFiles: string[] = [];
