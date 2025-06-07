@@ -323,14 +323,17 @@ let isViewMpde: ViewMode = 'map'; // 初期状態は3Dビュー
 
 if (toggleViewButton) {
     toggleViewButton.addEventListener('click', () => {
+        toggleViewButton.classList.toggle('c-mode-map');
+        toggleViewButton.classList.toggle('c-mode-3d');
+
         if (isViewMpde === 'map') {
             isViewMpde = '3d';
-            toggleViewButton.textContent = '地図ビューに切り替え';
+
             threeCanvasWorker.postMessage({ type: 'toggleView', mode: true });
             toggleMapView(false);
         } else {
             isViewMpde = 'map';
-            toggleViewButton.textContent = '3Dビューに切り替え';
+
             threeCanvasWorker.postMessage({ type: 'toggleView', mode: false });
             toggleMapView(true);
         }

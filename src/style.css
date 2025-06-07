@@ -16,6 +16,9 @@
     font-size: 24px;
 }
 
+#three-canvas {
+}
+
 #status-message {
     font-family: monospace;
     font-size: 12px;
@@ -29,4 +32,15 @@
 
 #status-message:not(:empty) {
     display: block !important;
+}
+
+#toggle-view-button.c-mode-3d > .c-switch {
+    translate: 75% 0%;
+}
+
+#toggle-view-button.c-mode-3d > .c-3d {
+    color: #000;
+}
+#toggle-view-button.c-mode-map > .c-map {
+    color: #000;
 }
