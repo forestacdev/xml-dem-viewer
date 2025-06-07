@@ -58,10 +58,17 @@ const init = (event: Props) => {
     const devicePixelRatio = event.data.devicePixelRatio;
     // Three.jsのライブラリの内部で style.width にアクセスされてしまう
     // 対策しないと、エラーが発生するためダミーの値を指定
-    canvas.style = { width: 0, height: 0 } as any;
+    canvas.style = {
+        width: '0px',
+        height: '0px',
+    } as any;
 
     // レンダラーを作成
-    renderer = new THREE.WebGLRenderer({ canvas });
+    renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: true,
+    });
 
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 10000);

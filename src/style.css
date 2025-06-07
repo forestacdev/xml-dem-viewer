@@ -22,7 +22,7 @@ body {
 
 /* three.js canvas */
 #three-canvas {
-    /* background-image: radial-gradient(#003d5e, #000000); */
+    background-image: radial-gradient(#003d5e, #000000);
     width: 100vw;
     height: 100vh;
 }
