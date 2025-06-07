@@ -62,15 +62,12 @@ vec3 encodeHeight(float height) {
     } else if (u_dem_type == 2.0) {  // terrarium (Terrarium-RGB)
         // 逆算式: value = height + 32768.0
         float value = height + 32768.0;
-
-        // valueが負にならないようにクランプ（安全対策）
-        value = max(0.0, value); 
+        value = clamp(value, 0.0, 65535.0); // 16bit範囲
 
         float r = floor(value / 256.0);
-        float g = floor(mod(value, 256.0));
-        // Bチャンネルは小数部分から計算
-        float b = floor(fract(value) * 256.0);
-        
+        float g = mod(value, 256.0);
+        float b = floor(fract(height + 32768.0) * 256.0);
+
         return vec3(r, g, b) / 255.0;
     }
 

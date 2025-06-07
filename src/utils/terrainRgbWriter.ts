@@ -1,24 +1,22 @@
 import type { GeoTransform } from "./geotiff";
 
 // 標高値をTerrain RGB形式にエンコード
+
 const elevationToTerrainRGB = (elevation: number): [number, number, number, number] => {
     // 無効値の場合は透明に
     if (elevation === -9999 || isNaN(elevation)) {
         return [0, 0, 0, 0]; // 透明
     }
 
-    // Terrain RGBエンコーディング
-    // elevation = -10000 + ((R * 256 * 256 + G * 256 + B) * 0.1)
-    // 逆算: encoded = (elevation + 10000) / 0.1
-    const encoded = Math.round((elevation + 10000) / 0.1);
+    const value = (elevation + 10000) * 10;
 
     // 24bit値を制限
-    const clampedEncoded = Math.max(0, Math.min(16777215, encoded)); // 0 to 2^24-1
+    const clampedValue = Math.max(0, Math.min(16777215, Math.round(value)));
 
-    // RGB値に分解
-    const r = Math.floor(clampedEncoded / (256 * 256));
-    const g = Math.floor((clampedEncoded % (256 * 256)) / 256);
-    const b = clampedEncoded % 256;
+    // RGB値に分解（GLSLと同じ計算）
+    const r = Math.floor(clampedValue / 65536); // 256*256
+    const g = Math.floor((clampedValue % 65536) / 256);
+    const b = clampedValue % 256;
 
     return [r, g, b, 255]; // 不透明
 };
@@ -95,7 +93,7 @@ const createTerrainRGBGeoTiffBuffer = (
 
     // オフセット計算（アライメント考慮）
     const tiffHeaderSize = 8;
-    const ifdEntryCount = 19; // Terrain RGB用のエントリ数
+    const ifdEntryCount = 18; // アルファ関連のタグを削除してエントリ数を減らす
     const ifdSize = 2 + ifdEntryCount * 12 + 4;
 
     let currentOffset = tiffHeaderSize + ifdSize;
@@ -153,7 +151,7 @@ const createTerrainRGBGeoTiffBuffer = (
         offset += 12;
     };
 
-    // 基本的なTIFFタグ
+    // 基本的なTIFFタグ（アルファ関連のタグを修正）
     writeIFDEntry(256, 4, 1, width); // ImageWidth
     writeIFDEntry(257, 4, 1, height); // ImageLength
     writeIFDEntry(258, 3, 4, bitsPerSampleOffset); // BitsPerSample (8,8,8,8)
@@ -168,7 +166,8 @@ const createTerrainRGBGeoTiffBuffer = (
     writeIFDEntry(283, 5, 1, 0); // YResolution
     writeIFDEntry(284, 3, 1, 1); // PlanarConfiguration (chunky)
     writeIFDEntry(296, 3, 1, 2); // ResolutionUnit
-    writeIFDEntry(338, 3, 1, 1); // ExtraSamples (1 = associated alpha)
+    // ExtraSamplesタグを削除または変更
+    // writeIFDEntry(338, 3, 1, 1); // ExtraSamples (1 = associated alpha) - 削除
 
     // GeoTIFFタグ
     writeIFDEntry(33550, 12, 3, modelPixelScaleOffset); // ModelPixelScaleTag
@@ -179,9 +178,10 @@ const createTerrainRGBGeoTiffBuffer = (
     // Next IFD offset (0 = no more IFDs)
     view.setUint32(offset, 0, true);
 
-    // === GeoKeyDirectory ===（2バイトアライメント済み）
+    // === GeoKeyDirectory ===
     const geoKeyView = new Uint16Array(buffer, geoKeyDirectoryOffset, geoKeyDirectory.length);
     geoKeyView.set(geoKeyDirectory);
+
     // === ImageDescription ===
     const imageDescBytes = new TextEncoder().encode(imageDescription + "\0");
     const imageDescView = new Uint8Array(buffer, imageDescriptionOffset, imageDescBytes.length);
@@ -200,7 +200,7 @@ const createTerrainRGBGeoTiffBuffer = (
     );
     bitsPerSampleView.set(bitsPerSampleArray);
 
-    // === ModelPixelScale ===（8バイトアライメント済み）
+    // === ModelPixelScale ===
     for (let i = 0; i < 3; i++) {
         view.setFloat64(modelPixelScaleOffset + i * 8, modelPixelScale[i], true);
     }
@@ -247,11 +247,79 @@ const createTerrainRGBGeoTiffBuffer = (
         }
     }
 
-    console.log(`Terrain RGB conversion complete:`);
-    console.log(`- Total pixels: ${totalPixels}`);
-    console.log(`- Valid pixels: ${validPixels}`);
-    console.log(`- Transparent pixels: ${transparentPixels}`);
-    console.log(`- Valid ratio: ${((validPixels / totalPixels) * 100).toFixed(1)}%`);
+    console.log(`=== Terrain RGB変換完了 ===`);
+    console.log(`- 全ピクセル数: ${totalPixels}`);
+    console.log(`- 有効ピクセル: ${validPixels}`);
+    console.log(`- 透明ピクセル: ${transparentPixels}`);
+    console.log(`- 有効率: ${((validPixels / totalPixels) * 100).toFixed(1)}%`);
 
     return buffer;
+};
+
+// WebWorkerのメッセージハンドラー
+self.onmessage = (e) => {
+    const { demArray, geoTransform, testEncoding = false } = e.data;
+
+    try {
+        self.postMessage({
+            type: "progress",
+            message: "Terrain RGB GeoTIFF処理開始...",
+            progress: 0,
+        });
+
+        // データ検証
+        if (!demArray || !demArray.length || !demArray[0] || !demArray[0].length) {
+            throw new Error("Invalid demArray data");
+        }
+
+        if (!geoTransform) {
+            throw new Error("Invalid geoTransform data");
+        }
+
+        const width = demArray[0].length;
+        const height = demArray.length;
+
+        self.postMessage({
+            type: "info",
+            message: `処理データ: ${width} × ${height} pixels (Terrain RGB形式)`,
+        });
+
+        self.postMessage({
+            type: "progress",
+            message: "Terrain RGB GeoTIFF作成中...",
+            progress: 0.1,
+        });
+
+        const buffer = createTerrainRGBGeoTiffBuffer(demArray, geoTransform);
+
+        self.postMessage({
+            type: "progress",
+            message: "Terrain RGB GeoTIFF作成完了",
+            progress: 1.0,
+        });
+
+        self.postMessage({
+            type: "complete",
+            buffer: buffer,
+            message: "Terrain RGB GeoTIFF作成完了",
+            width: width,
+            height: height,
+            size: buffer.byteLength,
+            format: "TerrainRGB",
+        });
+    } catch (error) {
+        if (error instanceof Error) {
+            self.postMessage({
+                type: "error",
+                error: error.message,
+                stack: error.stack,
+            });
+        } else {
+            self.postMessage({
+                type: "error",
+                error: "Unknown error occurred",
+                stack: "",
+            });
+        }
+    }
 };
