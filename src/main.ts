@@ -425,7 +425,7 @@ if (sampleDem5aBtn) {
             console.log(`File name: ${file.name}`);
 
             await processFile(file);
-            dropZone.style.display = "none"; // ドロップゾーンを非表示にする
+            if (dropZone) dropZone.style.display = "none"; // ドロップゾーンを非表示にする
         } catch (error) {
             console.error("Error fetching or processing sample DEM:", error);
             alert("サンプルDEMファイルの取得または処理に失敗しました");
