@@ -227,6 +227,61 @@ function initializeDragAndDrop() {
         }
     });
 
+    const fileInput = document.getElementById('fileInput') as HTMLInputElement;
+
+    if (fileInput) {
+        fileInput.addEventListener('change', async (e) => {
+            e.preventDefault();
+            dragCounter = 0;
+            dropZone.style.display = 'none';
+            const target = e.target as HTMLInputElement;
+            if (target.files && target.files.length > 0) {
+                const file = target.files[0];
+                try {
+                    console.log('🚀 Starting DEM processing...');
+                    const startTime = performance.now();
+
+                    // プログレスコールバックを定義
+                    const progressCallback = (current: number, total: number, fileName: string) => {
+                        console.log(`📄 Processing XML file ${current}/${total}: ${fileName}`);
+
+                        // UIに進捗を表示したい場合
+                        const progressPercent = Math.round((current / total) * 100);
+                        const statusElement = document.getElementById('status-message');
+                        if (statusElement) {
+                            statusElement.textContent = `Processing XML files... ${progressPercent}% (${current}/${total})`;
+                        }
+                    };
+
+                    // プログレスコールバックを渡してDEM作成
+                    const dem = await createDemFromZipUpload(file, false, progressCallback);
+
+                    const endTime = performance.now();
+                    console.log(`⚡ Processing completed in ${(endTime - startTime).toFixed(2)}ms`);
+
+                    // ステータスメッセージをクリア
+                    const statusElement = document.getElementById('status-message');
+                    if (statusElement) {
+                        statusElement.textContent = '';
+                    }
+
+                    const geotiffData = await createGeoTiffFromDem(dem);
+                    const { geoTransform, demArray, imageSize } = geotiffData;
+
+                    threeCanvasWorker.postMessage({
+                        type: 'addMesh',
+                        demArray: demArray,
+                        geoTransform: geoTransform,
+                        imageSize: imageSize,
+                    });
+                } catch (error) {
+                    console.error('ファイル処理エラー:', error);
+                    alert('ファイルの読み込みに失敗しました。');
+                }
+            }
+        });
+    }
+
     // ドロップ時
     document.addEventListener('drop', async (e) => {
         e.preventDefault();
