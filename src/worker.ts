@@ -59,7 +59,7 @@ const createGeoTiffBufferWorker = (demArray: number[][], geoTransform: GeoTransf
 
     // オフセット計算
     const tiffHeaderSize = 8;
-    const ifdEntryCount = 18;
+    const ifdEntryCount = 18; // 17から18に変更（NODATA用）
     const ifdSize = 2 + ifdEntryCount * 12 + 4;
 
     const geoKeyDirectoryOffset = tiffHeaderSize + ifdSize;
