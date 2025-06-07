@@ -1,10 +1,10 @@
-import * as maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import * as maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 
-import vertexShaderSource from './shaders/vertex.glsl?raw';
-import fragmentShaderSource from './shaders/fragment.glsl?raw';
+import vertexShaderSource from "./shaders/vertex.glsl?raw";
+import fragmentShaderSource from "./shaders/fragment.glsl?raw";
 
-import type { GeoTiffData } from '../geotiff';
+import type { GeoTiffData } from "../utils/geotiff";
 
 interface CanvasOptions {
     array: Float32Array;
@@ -33,7 +33,11 @@ const createShader = (gl: WebGLRenderingContext, type: number, source: string) =
 };
 
 // プログラム作成ヘルパー関数
-const createProgram = (gl: WebGLRenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader) => {
+const createProgram = (
+    gl: WebGLRenderingContext,
+    vertexShader: WebGLShader,
+    fragmentShader: WebGLShader,
+) => {
     const program = gl.createProgram();
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
@@ -48,42 +52,46 @@ const createProgram = (gl: WebGLRenderingContext, vertexShader: WebGLShader, fra
 };
 
 // キャンバスとWebGLコンテキストの初期化
-const canvas = document.createElement('canvas');
+const canvas = document.createElement("canvas");
 document.body.appendChild(canvas);
-canvas.style.display = 'none'; // 非表示にする
+canvas.style.display = "none"; // 非表示にする
 
 if (!canvas) {
     throw new Error('Canvas element with id "my-canvas" not found.');
 }
-const gl = canvas.getContext('webgl2');
+const gl = canvas.getContext("webgl2");
 if (!gl) {
-    throw new Error('WebGL context could not be initialized.');
+    throw new Error("WebGL context could not be initialized.");
 }
 
-const ext = gl.getExtension('EXT_color_buffer_float');
+const ext = gl.getExtension("EXT_color_buffer_float");
 if (!ext) {
-    console.error('Float texture not supported');
+    console.error("Float texture not supported");
 }
 // シェーダープログラムの作成
 const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
 const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
 
 if (!vertexShader || !fragmentShader) {
-    throw new Error('Failed to create shaders.');
+    throw new Error("Failed to create shaders.");
 }
 const program = createProgram(gl, vertexShader, fragmentShader);
 if (!program) {
-    throw new Error('Failed to create WebGL program.');
+    throw new Error("Failed to create WebGL program.");
 }
 
 // プログラムを使用
 gl.useProgram(program);
 
 // 頂点属性の設定
-const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
+const positionAttributeLocation = gl.getAttribLocation(program, "a_position");
 const positionBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0]), gl.STATIC_DRAW);
+gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array([-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0]),
+    gl.STATIC_DRAW,
+);
 gl.enableVertexAttribArray(positionAttributeLocation);
 gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
 
@@ -121,15 +129,15 @@ const processCanvas = (option: CanvasOptions) => {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
     // 追加：テクスチャサンプラーのユニフォームを設定
-    const textureUniformLocation = gl.getUniformLocation(program, 'u_texArray');
+    const textureUniformLocation = gl.getUniformLocation(program, "u_texArray");
     gl.uniform1i(textureUniformLocation, 0); // TEXTURE0を使用
 
-    const bboxUniformLocation = gl.getUniformLocation(program, 'u_bbox_4326');
+    const bboxUniformLocation = gl.getUniformLocation(program, "u_bbox_4326");
     gl.uniform4fv(bboxUniformLocation, bbox);
 
-    const minUniformLocation = gl.getUniformLocation(program, 'u_min');
+    const minUniformLocation = gl.getUniformLocation(program, "u_min");
     gl.uniform1f(minUniformLocation, min);
-    const maxUniformLocation = gl.getUniformLocation(program, 'u_max');
+    const maxUniformLocation = gl.getUniformLocation(program, "u_max");
     gl.uniform1f(maxUniformLocation, max);
 
     // WebGLで描画
@@ -138,32 +146,32 @@ const processCanvas = (option: CanvasOptions) => {
 
 // 地図インスタンスの初期化
 export const mapLibreMap = new maplibregl.Map({
-    container: 'map',
+    container: "map",
     style: {
         version: 8,
-        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+        glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
         sources: {
             pale: {
-                type: 'raster',
-                tiles: ['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png'],
+                type: "raster",
+                tiles: ["https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png"],
                 tileSize: 256,
                 minzoom: 0,
                 maxzoom: 18,
-                attribution: '地理院タイル',
+                attribution: "地理院タイル",
             },
         },
         layers: [
             {
-                id: 'pale',
-                type: 'raster',
-                source: 'pale',
+                id: "pale",
+                type: "raster",
+                source: "pale",
                 minzoom: 0,
                 maxzoom: 22,
                 paint: {
-                    'raster-opacity': 1.0,
-                    'raster-brightness-min': 0.0, // 画像の明るさ最小値
-                    'raster-brightness-max': 0.5, // 画像の明るさ最大値
-                    'raster-saturation': -1.0, // 画像の彩度
+                    "raster-opacity": 1.0,
+                    "raster-brightness-min": 0.0, // 画像の明るさ最小値
+                    "raster-brightness-max": 0.5, // 画像の明るさ最大値
+                    "raster-saturation": -1.0, // 画像の彩度
                 },
             },
         ],
@@ -174,7 +182,7 @@ export const mapLibreMap = new maplibregl.Map({
 
 export const addMapLayerFromDem = async (geotiffData: GeoTiffData) => {
     if (!mapLibreMap) {
-        throw new Error('MapLibre map instance is not initialized.');
+        throw new Error("MapLibre map instance is not initialized.");
     }
 
     const { geoTransform, demArray, imageSize, statistics } = geotiffData;
@@ -216,8 +224,8 @@ export const addMapLayerFromDem = async (geotiffData: GeoTiffData) => {
     await processCanvas(option);
 
     // ソース追加
-    mapLibreMap.addSource('canvas-source', {
-        type: 'canvas',
+    mapLibreMap.addSource("canvas-source", {
+        type: "canvas",
         canvas: canvas,
         coordinates: [
             [bbox[0], bbox[3]], // upper left
@@ -229,9 +237,9 @@ export const addMapLayerFromDem = async (geotiffData: GeoTiffData) => {
     });
     // レイヤー追加
     mapLibreMap.addLayer({
-        id: 'canvas-layer',
-        type: 'raster',
-        source: 'canvas-source',
+        id: "canvas-layer",
+        type: "raster",
+        source: "canvas-source",
     });
 
     mapLibreMap.fitBounds(bbox, {
@@ -241,12 +249,12 @@ export const addMapLayerFromDem = async (geotiffData: GeoTiffData) => {
 };
 
 export const toggleMapView = (isVisible: boolean) => {
-    const mapContainer = document.getElementById('map');
+    const mapContainer = document.getElementById("map");
     if (!mapContainer) {
-        console.error('Map container not found.');
+        console.error("Map container not found.");
         return;
     }
-    mapContainer.style.display = isVisible ? 'block' : 'none';
+    mapContainer.style.display = isVisible ? "block" : "none";
     if (isVisible && !mapLibreMap.isStyleLoaded()) {
         mapLibreMap.resize();
     }
