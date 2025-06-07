@@ -16,25 +16,16 @@
             id="drop-zone"
             class="h-full w-full absolute z-50 bg-black/50 top-0 left-0 text-white grid place-items-center pointer-events-none"
         >
-            <span>ZIPファイルをドロップしてください</span>
-            <label
-                for="fileInput"
-                class="pointer-events-auto bg-black p-2 cursor-pointer rounded-full px-4 hover:bg-white hover:text-black transition-colors duration-300"
-            >
+            <span class="text-4xl">ファイルをドロップしてください</span>
+            <label for="fileInput" class="btn-primary">
                 <span>ZIPまたはXMLファイルを選択</span>
                 <input type="file" id="fileInput" accept=".zip,.xml" class="hidden" />
             </label>
-            <label
-                for="fileInput"
-                class="pointer-events-auto bg-black p-4 cursor-pointer rounded-full px-4 hover:bg-white hover:text-black transition-colors duration-300"
-            >
+            <label for="fileInput" class="btn-primary">
                 <span>またはXMLを含むフォルダを選択</span>
                 <input type="file" id="fileInput" class="hidden" webkitdirectory />
             </label>
-            <button
-                id="sample-dem5a"
-                class="bg-black p-4 cursor-pointer rounded-full px-4 hover:bg-white hover:text-black transition-colors duration-300 pointer-events-auto"
-            >
+            <button id="sample-dem5a" class="btn-primary">
                 <span>サンプルデータを読み込む</span>
             </button>
             <div class="flex flex-col items-center p-8">
