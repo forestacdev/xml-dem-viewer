@@ -187,10 +187,34 @@ function initializeDragAndDrop() {
             const file = files[0];
             if (file.type === 'application/zip' || file.name.endsWith('.zip')) {
                 try {
-                    const dem = await createDemFromZipUpload(file);
+                    console.log('🚀 Starting DEM processing...');
+                    const startTime = performance.now();
+
+                    // プログレスコールバックを定義
+                    const progressCallback = (current: number, total: number, fileName: string) => {
+                        console.log(`📄 Processing XML file ${current}/${total}: ${fileName}`);
+
+                        // UIに進捗を表示したい場合
+                        const progressPercent = Math.round((current / total) * 100);
+                        const statusElement = document.getElementById('status-message');
+                        if (statusElement) {
+                            statusElement.textContent = `Processing XML files... ${progressPercent}% (${current}/${total})`;
+                        }
+                    };
+
+                    // プログレスコールバックを渡してDEM作成
+                    const dem = await createDemFromZipUpload(file, false, progressCallback);
+
+                    const endTime = performance.now();
+                    console.log(`⚡ Processing completed in ${(endTime - startTime).toFixed(2)}ms`);
+
+                    // ステータスメッセージをクリア
+                    const statusElement = document.getElementById('status-message');
+                    if (statusElement) {
+                        statusElement.textContent = '';
+                    }
 
                     const geotiffData = await createGeoTiffFromDem(dem);
-
                     const { geoTransform, demArray, imageSize } = geotiffData;
 
                     const elevationScale = 0.5; // 標高のスケールを調整するための係数
@@ -223,7 +247,7 @@ function initializeDragAndDrop() {
                     console.log('DEM Mesh created successfully:', mesh);
 
                     // GeoTIFFダウンロード
-                    await downloadGeoTiffWithWorker(demArray, geoTransform, 'elevation.tif');
+                    // await downloadGeoTiffWithWorker(demArray, geoTransform, 'elevation.tif');
                 } catch (error) {
                     console.error('Error creating DEM:', error);
                     alert('ZIPファイルの処理中にエラーが発生しました');

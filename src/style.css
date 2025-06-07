@@ -22,7 +22,22 @@ body {
 
 /* three.js canvas */
 #three-canvas {
-    background-image: radial-gradient(#003d5e, #000000);
+    /* background-image: radial-gradient(#003d5e, #000000); */
     width: 100vw;
     height: 100vh;
+}
+
+#status-message {
+    font-family: monospace;
+    font-size: 12px;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+#status-message:empty {
+    display: none !important;
+}
+
+#status-message:not(:empty) {
+    display: block !important;
 }
