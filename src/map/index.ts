@@ -2,8 +2,7 @@ import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Coordinates } from 'maplibre-gl';
 
-import type { GeoTransform } from '../demxml';
-import type { ImageSize } from '../geotiff';
+import type { ImageSize, GeoTransform } from '../geotiff';
 
 // 頂点シェーダー
 const vertexShaderSource = /* GLSL */ `#version 300 es
@@ -254,6 +253,27 @@ export const addMapLayerFromDem = async (demArray: number[][], geoTransform: Geo
     }
 
     console.log('Adding DEM layer to MapLibre map...');
+    console.log('Adding DEM layer to MapLibre map...');
+    console.log('Adding DEM layer to MapLibre map...');
+    console.log('Adding DEM layer to MapLibre map...');
+
+    const height = demArray.length;
+    const width = demArray[0]?.length || 0;
+    // 1次元配列に変換
+    const elevationArray = new Float32Array(width * height);
+    let index = 0;
+
+    for (let i = 0; i < height; i++) {
+        for (let j = 0; j < width; j++) {
+            let elevation = demArray[i][j];
+            // NoData値の処理
+            // if (elevation === -9999 || isNaN(elevation)) {
+            //     elevation = statistics.minElevation;
+            // }
+            elevationArray[index] = elevation;
+            index++;
+        }
+    }
 };
 
 mapLibreMap.on('load', async () => {

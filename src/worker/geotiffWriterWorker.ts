@@ -1,4 +1,4 @@
-import type { GeoTransform } from '../demxml';
+import type { GeoTransform } from '../geotiff';
 // GeoTIFF作成関数
 const createGeoTiffBufferWorker = (demArray: number[][], geoTransform: GeoTransform): ArrayBuffer => {
     const height = demArray.length;

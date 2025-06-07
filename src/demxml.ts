@@ -56,15 +56,6 @@ interface NpArrayData {
     array: number[][];
 }
 
-export interface GeoTransform {
-    upperLeftX: number;
-    pixelSizeX: number;
-    rotationX: number;
-    upperLeftY: number;
-    rotationY: number;
-    pixelSizeY: number;
-}
-
 import type { ParseXmlTask, ParseXmlResult } from './worker/xmlParseWorker';
 
 export class ParallelXmlParser {

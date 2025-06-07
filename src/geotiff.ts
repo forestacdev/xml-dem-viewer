@@ -1,18 +1,65 @@
 import type { Dem, MetaData } from './demxml';
 
-// GeoTIFF生成用の型定義
+// 地理的境界の型定義
+export interface GeographicBounds {
+    lower_left: {
+        lat: number;
+        lon: number;
+    };
+    upper_right: {
+        lat: number;
+        lon: number;
+    };
+}
+
+// 画像サイズの型定義
 export interface ImageSize {
     x: number;
     y: number;
 }
 
-interface GeoTransform {
+// GeoTransformの型定義
+export interface GeoTransform {
     upperLeftX: number; // 左上X座標
     pixelSizeX: number; // X方向ピクセルサイズ
     rotationX: number; // X軸回転（通常0）
     upperLeftY: number; // 左上Y座標
     rotationY: number; // Y軸回転（通常0）
     pixelSizeY: number; // Y方向ピクセルサイズ（負値）
+}
+
+// 統計情報の型定義
+export interface Statistics {
+    validPixels: number;
+    invalidPixels: number;
+    minElevation: number;
+    maxElevation: number;
+    averageElevation: number;
+    bounds: GeographicBounds;
+    imageSize: ImageSize;
+}
+
+// ファイル情報の型定義
+export interface FileInfo {
+    filename: string;
+    content: string;
+}
+
+// GeoTIFFデータの型定義
+export interface GeoTiffData {
+    geoTransform: GeoTransform;
+    demArray: number[][];
+    imageSize: ImageSize;
+    statistics: Statistics;
+}
+
+// 標高配列データの型定義
+export interface ElevationData {
+    elevations: number[];
+    width: number;
+    height: number;
+    statistics: Statistics;
+    timestamp: string;
 }
 
 interface MeshData extends MetaData {
@@ -198,15 +245,7 @@ export class GeoTiffGenerator {
     }
 
     // 統計情報の取得
-    public getStatistics(): {
-        validPixels: number;
-        invalidPixels: number;
-        minElevation: number;
-        maxElevation: number;
-        averageElevation: number;
-        bounds: typeof this.dem.boundsLatLng;
-        imageSize: ImageSize;
-    } {
+    public getStatistics(): Statistics {
         const data = this.makeDataForGeoTiff();
         const { demArray } = data;
 
@@ -242,15 +281,7 @@ export class GeoTiffGenerator {
 }
 
 // 使用例とヘルパー関数
-export const createGeoTiffFromDem = async (
-    dem: Dem,
-    onProgress?: (current: number, total: number, message: string) => void,
-): Promise<{
-    geoTransform: GeoTransform;
-    demArray: number[][];
-    imageSize: ImageSize;
-    statistics: ReturnType<GeoTiffGenerator['getStatistics']>;
-}> => {
+export const createGeoTiffFromDem = async (dem: Dem, onProgress?: (current: number, total: number, message: string) => void): Promise<GeoTiffData> => {
     const generator = new GeoTiffGenerator(dem, onProgress);
     const geoTiffData = generator.makeDataForGeoTiff();
     const statistics = generator.getStatistics();

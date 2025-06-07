@@ -5,7 +5,7 @@ import { createGeoTiffFromDem } from './geotiff';
 
 import GeoTIFF, { writeArrayBuffer } from 'geotiff';
 import { mapLibreMap, addMapLayerFromDem } from './map';
-import type { GeoTransform } from './demxml';
+import type { GeoTransform } from './geotiff';
 
 // キャンバス
 const canvas = document.getElementById('three-canvas') as HTMLCanvasElement;
@@ -199,6 +199,61 @@ const downloadGeoTiffWithWorker = async (demArray: number[][], geoTransform: Geo
     });
 };
 
+const processFile = async (file: File) => {
+    if (file.type === 'application/zip' || file.name.endsWith('.zip')) {
+        try {
+            console.log('🚀 Starting DEM processing...');
+            const startTime = performance.now();
+
+            // プログレスコールバックを定義
+            const progressCallback = (current: number, total: number, fileName: string) => {
+                console.log(`📄 Processing XML file ${current}/${total}: ${fileName}`);
+
+                // UIに進捗を表示したい場合
+                const progressPercent = Math.round((current / total) * 100);
+                const statusElement = document.getElementById('status-message');
+                if (statusElement) {
+                    statusElement.textContent = `Processing XML files... ${progressPercent}% (${current}/${total})`;
+                }
+            };
+
+            // プログレスコールバックを渡してDEM作成
+            const dem = await createDemFromZipUpload(file, false, progressCallback);
+
+            const endTime = performance.now();
+            console.log(`⚡ Processing completed in ${(endTime - startTime).toFixed(2)}ms`);
+
+            // ステータスメッセージをクリア
+            const statusElement = document.getElementById('status-message');
+            if (statusElement) {
+                statusElement.textContent = '';
+            }
+
+            const geotiffData = await createGeoTiffFromDem(dem);
+            const { geoTransform, demArray, imageSize, statistics } = geotiffData;
+
+            console.log(statistics);
+
+            await addMapLayerFromDem(demArray, geoTransform, imageSize);
+
+            // GeoTIFFダウンロード
+            await downloadGeoTiffWithWorker(demArray, geoTransform, 'elevation.tif');
+
+            threeCanvasWorker.postMessage({
+                type: 'addMesh',
+                demArray: demArray,
+                geoTransform: geoTransform,
+                imageSize: imageSize,
+            });
+        } catch (error) {
+            console.error('Error creating DEM:', error);
+            alert('ZIPファイルの処理中にエラーが発生しました');
+        }
+    } else {
+        alert('ZIPファイルをドロップしてください');
+    }
+};
+
 // ドラッグアンドドロップ機能の初期化
 function initializeDragAndDrop() {
     const dropZone = document.getElementById('drop-zone');
@@ -237,49 +292,7 @@ function initializeDragAndDrop() {
             const target = e.target as HTMLInputElement;
             if (target.files && target.files.length > 0) {
                 const file = target.files[0];
-                try {
-                    console.log('🚀 Starting DEM processing...');
-                    const startTime = performance.now();
-
-                    // プログレスコールバックを定義
-                    const progressCallback = (current: number, total: number, fileName: string) => {
-                        console.log(`📄 Processing XML file ${current}/${total}: ${fileName}`);
-
-                        // UIに進捗を表示したい場合
-                        const progressPercent = Math.round((current / total) * 100);
-                        const statusElement = document.getElementById('status-message');
-                        if (statusElement) {
-                            statusElement.textContent = `Processing XML files... ${progressPercent}% (${current}/${total})`;
-                        }
-                    };
-
-                    // プログレスコールバックを渡してDEM作成
-                    const dem = await createDemFromZipUpload(file, false, progressCallback);
-
-                    const endTime = performance.now();
-                    console.log(`⚡ Processing completed in ${(endTime - startTime).toFixed(2)}ms`);
-
-                    // ステータスメッセージをクリア
-                    const statusElement = document.getElementById('status-message');
-                    if (statusElement) {
-                        statusElement.textContent = '';
-                    }
-
-                    const geotiffData = await createGeoTiffFromDem(dem);
-                    const { geoTransform, demArray, imageSize } = geotiffData;
-
-                    threeCanvasWorker.postMessage({
-                        type: 'addMesh',
-                        demArray: demArray,
-                        geoTransform: geoTransform,
-                        imageSize: imageSize,
-                    });
-
-                    // await addMapLayerFromDem(demArray, geoTransform, imageSize);
-                } catch (error) {
-                    console.error('ファイル処理エラー:', error);
-                    alert('ファイルの読み込みに失敗しました。');
-                }
+                processFile(file);
             }
         });
     }
@@ -293,54 +306,7 @@ function initializeDragAndDrop() {
         const files = e.dataTransfer?.files;
         if (files && files.length > 0) {
             const file = files[0];
-            if (file.type === 'application/zip' || file.name.endsWith('.zip')) {
-                try {
-                    console.log('🚀 Starting DEM processing...');
-                    const startTime = performance.now();
-
-                    // プログレスコールバックを定義
-                    const progressCallback = (current: number, total: number, fileName: string) => {
-                        console.log(`📄 Processing XML file ${current}/${total}: ${fileName}`);
-
-                        // UIに進捗を表示したい場合
-                        const progressPercent = Math.round((current / total) * 100);
-                        const statusElement = document.getElementById('status-message');
-                        if (statusElement) {
-                            statusElement.textContent = `Processing XML files... ${progressPercent}% (${current}/${total})`;
-                        }
-                    };
-
-                    // プログレスコールバックを渡してDEM作成
-                    const dem = await createDemFromZipUpload(file, false, progressCallback);
-
-                    const endTime = performance.now();
-                    console.log(`⚡ Processing completed in ${(endTime - startTime).toFixed(2)}ms`);
-
-                    // ステータスメッセージをクリア
-                    const statusElement = document.getElementById('status-message');
-                    if (statusElement) {
-                        statusElement.textContent = '';
-                    }
-
-                    const geotiffData = await createGeoTiffFromDem(dem);
-                    const { geoTransform, demArray, imageSize } = geotiffData;
-
-                    // GeoTIFFダウンロード
-                    await downloadGeoTiffWithWorker(demArray, geoTransform, 'elevation.tif');
-
-                    threeCanvasWorker.postMessage({
-                        type: 'addMesh',
-                        demArray: demArray,
-                        geoTransform: geoTransform,
-                        imageSize: imageSize,
-                    });
-                } catch (error) {
-                    console.error('Error creating DEM:', error);
-                    alert('ZIPファイルの処理中にエラーが発生しました');
-                }
-            } else {
-                alert('ZIPファイルをドロップしてください');
-            }
+            processFile(file);
         }
     });
 }

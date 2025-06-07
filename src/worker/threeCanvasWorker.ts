@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import fragmentShader from '../shaders/fragment.glsl?raw';
 import vertexShader from '../shaders/vertex.glsl?raw';
+
+import type { ImageSize, GeoTransform } from '../geotiff';
+
 let renderer: THREE.WebGLRenderer;
 let camera: THREE.PerspectiveCamera;
 let scene: THREE.Scene;
@@ -276,7 +279,7 @@ function handleWheelEvent(eventData: any) {
     });
 }
 
-const addMesh = (demArray: number[][], geoTransform: number[], imageSize: { x: number; y: number }) => {
+const addMesh = (demArray: number[][], geoTransform: GeoTransform, imageSize: ImageSize) => {
     // 既存のメッシュをクリア
     const existingMesh = scene.getObjectByName('demMesh');
     if (existingMesh) {
