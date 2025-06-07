@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+.btu-primary {
+    @apply bg-black p-4 cursor-pointer rounded-full px-4 hover:bg-white hover:text-black transition-colors duration-300;
+}
+
 #drop-zone {
     position: absolute;
     top: 0;

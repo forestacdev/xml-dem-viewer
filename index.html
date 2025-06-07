@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
     <head>
         <meta charset="UTF-8" />
@@ -8,24 +8,72 @@
     </head>
     <body class="overflow-hidden m-0 p-0 relative h-dvh w-dvw">
         <div id="map" class="h-full w-full absolute top-0 left-0"></div>
-        <canvas id="three-canvas" class="h-full w-full bg-radial from-[#003d5e] to-[#000000]"></canvas>
-        <div id="drop-zone" class="h-full w-full absolute z-50 bg-black/50 top-0 left-0 text-white grid place-items-center text-lg pointer-events-none">
-            <span>国土地理院が提供する基盤地図情報数値標高モデル(DEM)のXML形式及びそのZIPファイルを確認できます。</span>
+        <canvas
+            id="three-canvas"
+            class="h-full w-full bg-radial from-[#003d5e] to-[#000000]"
+        ></canvas>
+        <div
+            id="drop-zone"
+            class="h-full w-full absolute z-50 bg-black/50 top-0 left-0 text-white grid place-items-center pointer-events-none"
+        >
             <span>ZIPファイルをドロップしてください</span>
-            <label for="fileInput" class="pointer-events-auto bg-black p-4 cursor-pointer rounded-full px-4 hover:bg-white hover:text-black transition-colors duration-300">
-                <span>またはZIPファイルを選択</span>
-                <input type="file" id="fileInput" accept=".zip" class="hidden" />
-            </label>
-            <a class="text-blue-500 underline mt-4 block pointer-events-auto" href="https://service.gsi.go.jp/kiban/app/map/?search=dem" target="_blank" rel="noopener noreferrer">
-                <span>DEMデータのダウンロードはこちら</span></a
+            <label
+                for="fileInput"
+                class="pointer-events-auto bg-black p-2 cursor-pointer rounded-full px-4 hover:bg-white hover:text-black transition-colors duration-300"
             >
+                <span>ZIPまたはXMLファイルを選択</span>
+                <input type="file" id="fileInput" accept=".zip,.xml" class="hidden" />
+            </label>
+            <label
+                for="fileInput"
+                class="pointer-events-auto bg-black p-4 cursor-pointer rounded-full px-4 hover:bg-white hover:text-black transition-colors duration-300"
+            >
+                <span>またはXMLを含むフォルダを選択</span>
+                <input type="file" id="fileInput" class="hidden" webkitdirectory />
+            </label>
+            <button
+                id="sample-dem5a"
+                class="bg-black p-4 cursor-pointer rounded-full px-4 hover:bg-white hover:text-black transition-colors duration-300 pointer-events-auto"
+            >
+                <span>サンプルデータを読み込む</span>
+            </button>
+            <div class="flex flex-col items-center p-8">
+                <span
+                    >国土地理院が提供する基盤地図情報数値標高モデル(DEM)のXML形式及びそのZIPファイルを確認できます。</span
+                >
+                <a
+                    class="text-blue-500 underline mt-4 block pointer-events-auto"
+                    href="https://service.gsi.go.jp/kiban/app/map/?search=dem"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    ダウンロードページ
+                </a>
+            </div>
         </div>
-        <button id="toggle-view-button" class="c-mode-map absolute top-4 right-4 bg-gray-500 text-white rounded-full flex overflow-hidden w-[120px] cursor-pointer justify-between items-center">
-            <span class="c-switch absolute w-3/5 h-full rounded-full transition-transform duration-300 bg-white"></span>
+        <button
+            id="toggle-view-button"
+            class="c-mode-map absolute top-4 right-4 bg-gray-500 text-white rounded-full flex overflow-hidden w-[130px] cursor-pointer justify-between items-center border-2 border-black"
+        >
+            <span
+                class="c-switch absolute w-3/5 h-full rounded-full transition-transform duration-300 bg-white"
+            ></span>
             <span class="p-2 px-4 c-map z-10 transition-colors">地図</span>
             <span class="p-2 px-4 c-3d z-10 transition-colors"> 3D </span>
         </button>
-        <div id="status-message" style="position: fixed; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.8); color: white; padding: 10px; border-radius: 5px; display: none"></div>
-        <script type="module" src="/src/main.ts"></script>
+        <div
+            id="status-message"
+            style="
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                display: none;
+            "
+        ></div>
+        <script type="module" src="./src/main.ts"></script>
     </body>
 </html>

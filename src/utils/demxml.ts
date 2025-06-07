@@ -291,39 +291,80 @@ export class Dem {
 }
 
 // ブラウザ用：ZIPファイルからDEMオブジェクトを作成
-export const createDemFromZipUpload = async (zipFile: File, seaAtZero: boolean = false, onProgress?: (current: number, total: number, fileName: string) => void): Promise<Dem> => {
+export const createDemFromZipUpload = async (input: File | File[], seaAtZero: boolean = false, onProgress?: (current: number, total: number, fileName: string) => void): Promise<Dem> => {
     try {
-        const zip = await JSZip.loadAsync(zipFile);
         const xmlFiles: string[] = [];
         const xmlFileNames: string[] = [];
 
-        // ZIPファイル内のXMLファイルを取得
-        zip.forEach((relativePath, file) => {
-            if (!file.dir && relativePath.toLowerCase().endsWith('.xml')) {
-                xmlFileNames.push(relativePath);
-            }
-        });
+        if (Array.isArray(input)) {
+            // 複数ファイル（フォルダドロップ）の場合
+            const xmlInputFiles = input.filter((file) => file.name.toLowerCase().endsWith('.xml'));
 
-        if (xmlFileNames.length === 0) {
-            throw new DemInputXmlException('No XML files found in the ZIP file.');
-        }
-
-        // 各XMLファイルを読み込み
-        for (let i = 0; i < xmlFileNames.length; i++) {
-            const fileName = xmlFileNames[i];
-
-            // 進捗報告
-            if (onProgress) {
-                onProgress(i + 1, xmlFileNames.length, fileName);
+            if (xmlInputFiles.length === 0) {
+                throw new DemInputXmlException('No XML files found in the selected files.');
             }
 
-            try {
-                const xmlContent = await zip.file(fileName)?.async('string');
-                if (xmlContent) {
-                    xmlFiles.push(xmlContent);
+            // 各XMLファイルを読み込み
+            for (let i = 0; i < xmlInputFiles.length; i++) {
+                const file = xmlInputFiles[i];
+
+                // 進捗報告
+                if (onProgress) {
+                    onProgress(i + 1, xmlInputFiles.length, file.name);
                 }
-            } catch (error) {
-                throw new DemInputXmlException(`Failed to read XML file from ZIP: ${fileName}`);
+
+                try {
+                    const xmlContent = await file.text();
+                    xmlFiles.push(xmlContent);
+                    xmlFileNames.push(file.name);
+                } catch (error) {
+                    throw new DemInputXmlException(`Failed to read XML file: ${file.name}`);
+                }
+            }
+        } else {
+            // 単一ファイルの場合
+            if (input.name.toLowerCase().endsWith('.xml')) {
+                // 単一XMLファイル
+                try {
+                    const xmlContent = await input.text();
+                    xmlFiles.push(xmlContent);
+                    xmlFileNames.push(input.name);
+                } catch (error) {
+                    throw new DemInputXmlException(`Failed to read XML file: ${input.name}`);
+                }
+            } else {
+                // ZIPファイル
+                const zip = await JSZip.loadAsync(input);
+
+                // ZIPファイル内のXMLファイルを取得
+                zip.forEach((relativePath, file) => {
+                    if (!file.dir && relativePath.toLowerCase().endsWith('.xml')) {
+                        xmlFileNames.push(relativePath);
+                    }
+                });
+
+                if (xmlFileNames.length === 0) {
+                    throw new DemInputXmlException('No XML files found in the ZIP file.');
+                }
+
+                // 各XMLファイルを読み込み
+                for (let i = 0; i < xmlFileNames.length; i++) {
+                    const fileName = xmlFileNames[i];
+
+                    // 進捗報告
+                    if (onProgress) {
+                        onProgress(i + 1, xmlFileNames.length, fileName);
+                    }
+
+                    try {
+                        const xmlContent = await zip.file(fileName)?.async('string');
+                        if (xmlContent) {
+                            xmlFiles.push(xmlContent);
+                        }
+                    } catch (error) {
+                        throw new DemInputXmlException(`Failed to read XML file from ZIP: ${fileName}`);
+                    }
+                }
             }
         }
 
@@ -336,6 +377,6 @@ export const createDemFromZipUpload = async (zipFile: File, seaAtZero: boolean =
         if (error instanceof DemInputXmlException) {
             throw error;
         }
-        throw new DemInputXmlException('Failed to process ZIP file.');
+        throw new DemInputXmlException('Failed to process input files.');
     }
 };

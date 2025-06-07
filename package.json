@@ -12,6 +12,8 @@
     "devDependencies": {
         "@types/three": "^0.177.0",
         "gh-pages": "^6.3.0",
+        "prettier": "^3.5.3",
+        "prettier-plugin-tailwindcss": "^0.6.12",
         "typescript": "~5.8.3",
         "vite": "^6.3.5"
     },
@@ -22,5 +24,6 @@
         "maplibre-gl": "^5.6.0",
         "tailwindcss": "^4.1.8",
         "three": "^0.177.0"
-    }
+    },
+    "packageManager": "pnpm@10.11.1+sha256.211e9990148495c9fc30b7e58396f7eeda83d9243eb75407ea4f8650fb161f7c"
 }

@@ -196,8 +196,19 @@ const downloadGeoTiffWithWorker = async (demArray: number[][], geoTransform: Geo
     });
 };
 
-const processFile = async (file: File) => {
-    if (file.type === 'application/zip' || file.name.endsWith('.zip')) {
+const processFile = async (input: File | File[]) => {
+    const isInputArray = Array.isArray(input);
+    const firstFile = isInputArray ? input[0] : input;
+
+    console.log(`Processing ${isInputArray ? 'multiple files' : 'single file'}: ${firstFile.name}`);
+
+    // ZIPファイル、XMLファイル、または複数ファイルかどうかをチェック
+    const isZipFile = !isInputArray && (firstFile.type === 'application/zip' || firstFile.type === 'application/x-zip-compressed' || firstFile.name.toLowerCase().endsWith('.zip'));
+
+    const isXmlFile = !isInputArray && firstFile.name.toLowerCase().endsWith('.xml');
+    const hasXmlFiles = isInputArray && input.some((file) => file.name.toLowerCase().endsWith('.xml'));
+
+    if (isZipFile || isXmlFile || hasXmlFiles) {
         try {
             console.log('Starting DEM processing...');
             const startTime = performance.now();
@@ -206,7 +217,7 @@ const processFile = async (file: File) => {
             const progressCallback = (current: number, total: number, fileName: string) => {
                 console.log(`📄 Processing XML file ${current}/${total}: ${fileName}`);
 
-                // UIに進捗を表示したい場合
+                // UIに進捗を表示
                 const progressPercent = Math.round((current / total) * 100);
                 const statusElement = document.getElementById('status-message');
                 if (statusElement) {
@@ -215,7 +226,7 @@ const processFile = async (file: File) => {
             };
 
             // プログレスコールバックを渡してDEM作成
-            const dem = await createDemFromZipUpload(file, false, progressCallback);
+            const dem = await createDemFromZipUpload(input, false, progressCallback);
 
             const endTime = performance.now();
             console.log(`⚡ Processing completed in ${(endTime - startTime).toFixed(2)}ms`);
@@ -242,13 +253,13 @@ const processFile = async (file: File) => {
             });
         } catch (error) {
             console.error('Error creating DEM:', error);
-            alert('ZIPファイルの処理中にエラーが発生しました');
+            console.error('Error details:', error.message || error);
+            alert(`ファイルの処理中にエラーが発生しました: ${error.message || error}`);
         }
     } else {
-        alert('ZIPファイルをドロップしてください');
+        alert('ZIPファイル、XMLファイル、またはXMLファイルを含むフォルダをドロップしてください');
     }
 };
-
 // ドラッグアンドドロップ機能の初期化
 const initializeDragAndDrop = () => {
     const dropZone = document.getElementById('drop-zone');
@@ -310,6 +321,42 @@ const initializeDragAndDrop = () => {
 document.addEventListener('DOMContentLoaded', () => {
     initializeDragAndDrop();
 });
+
+const sampleDem5aBtn = document.getElementById('sample-dem5a') as HTMLButtonElement;
+if (sampleDem5aBtn) {
+    sampleDem5aBtn.addEventListener('click', async () => {
+        try {
+            console.log('Fetching sample DEM file...');
+            const response = await fetch('./sample/FG-GML-543745-DEM5A-20250214.zip');
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            console.log('Sample DEM file fetched successfully');
+            const arrayBuffer = await response.arrayBuffer();
+
+            // ArrayBufferからBlobを作成（正しいMIMEタイプを指定）
+            const blob = new Blob([arrayBuffer], { type: 'application/zip' });
+
+            // Fileオブジェクトを作成
+            const file = new File([blob], 'FG-GML-543745-DEM5A-20250214.zip', {
+                type: 'application/zip',
+                lastModified: Date.now(),
+            });
+
+            // ファイルサイズとタイプをログ出力
+            console.log(`File size: ${file.size} bytes`);
+            console.log(`File type: ${file.type}`);
+            console.log(`File name: ${file.name}`);
+
+            await processFile(file);
+        } catch (error) {
+            console.error('Error fetching or processing sample DEM:', error);
+            alert('サンプルDEMファイルの取得または処理に失敗しました');
+        }
+    });
+}
 
 const toggleViewButton = document.getElementById('toggle-view-button');
 

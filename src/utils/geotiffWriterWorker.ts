@@ -175,11 +175,13 @@ self.onmessage = (e) => {
             message: 'GeoTIFF作成完了',
         });
     } catch (error) {
-        self.postMessage({
-            type: 'error',
-            error: error.message,
-            stack: error.stack,
-        });
+        if (error instanceof Error) {
+            self.postMessage({
+                type: 'error',
+                error: error.message,
+                stack: error.stack,
+            });
+        }
     }
 };
 
@@ -198,10 +200,12 @@ self.onmessage = (e) => {
             message: 'TIFF作成完了',
         });
     } catch (error) {
-        self.postMessage({
-            type: 'error',
-            error: error.message,
-            stack: error.stack,
-        });
+        if (error instanceof Error) {
+            self.postMessage({
+                type: 'error',
+                error: error.message,
+                stack: error.stack,
+            });
+        }
     }
 };
