@@ -190,7 +190,7 @@ export const mapLibreMap = new maplibregl.Map({
         ],
     },
     center: [139.477, 35.681],
-    zoom: 2,
+    zoom: 4,
 });
 
 export const addMapLayerFromDem = async (geotiffData: GeoTiffData) => {
@@ -243,33 +243,27 @@ export const addMapLayerFromDem = async (geotiffData: GeoTiffData) => {
 
     await processCanvas(option);
 
+    // ソース追加
+    mapLibreMap.addSource('canvas-source', {
+        type: 'canvas',
+        canvas: canvas,
+        coordinates: [
+            [bbox[0], bbox[3]], // upper left
+            [bbox[2], bbox[3]], // upper right
+            [bbox[2], bbox[1]], // lower right
+            [bbox[0], bbox[1]], // lower left
+        ],
+        animate: true,
+    });
+    // レイヤー追加
+    mapLibreMap.addLayer({
+        id: 'canvas-layer',
+        type: 'raster',
+        source: 'canvas-source',
+    });
+
     mapLibreMap.fitBounds(bbox, {
         padding: { top: 50, bottom: 50, left: 50, right: 50 },
+        duration: 1500,
     });
 };
-
-mapLibreMap.on('load', async () => {
-    // const { coordinates } = getMapBounds(map);
-    // // ソース追加
-    // map.addSource('canvas-source', {
-    //     type: 'canvas',
-    //     canvas: canvas,
-    //     coordinates: coordinates,
-    // });
-    // // レイヤー追加
-    // map.addLayer({
-    //     id: 'canvas-layer',
-    //     type: 'raster',
-    //     source: 'canvas-source',
-    // });
-    // // 初期データ読み込みと処理
-    // await processImage(map);
-    // // 地図の移動イベントリスナーを設定
-    // // 地図が移動した後に画像を再取得してキャンバスを更新
-    // map.on('moveend', async () => {
-    //     const { coordinates } = await processImage(map);
-    //     // 座標の更新
-    //     const canvasSource = map.getSource('canvas-source') as maplibregl.CanvasSource;
-    //     canvasSource.setCoordinates(coordinates);
-    // });
-});
