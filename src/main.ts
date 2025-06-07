@@ -122,10 +122,10 @@ canvas.addEventListener('touchend', (event) => {
 });
 
 // シンプルなWebWorker TIFF作成
-const downloadGeoTiffWithWorker = async (demArray: number[][], geoTransform: GeoTransform, filename: string = 'elevation.tif'): Promise<boolean> => {
+const downloadGeoTiffWithWorker = async (demArray: number[][], geoTransform: GeoTransform, filename: string): Promise<boolean> => {
     return new Promise((resolve, reject) => {
-        console.log('🚀 Starting WebWorker TIFF creation...');
-        console.log(`📊 Dimensions: ${demArray[0]?.length} × ${demArray.length}`);
+        console.log('Starting WebWorker TIFF creation...');
+        console.log(`Dimensions: ${demArray[0]?.length} × ${demArray.length}`);
 
         // WebWorker作成
         const worker = new Worker(new URL('./utils/geotiffWriterWorker.ts', import.meta.url), {
@@ -229,12 +229,10 @@ const processFile = async (file: File) => {
             const geotiffData = await createGeoTiffFromDem(dem);
             const { geoTransform, demArray, imageSize, statistics } = geotiffData;
 
-            console.log(statistics);
-
             await addMapLayerFromDem(geotiffData);
 
             // GeoTIFFダウンロード
-            await downloadGeoTiffWithWorker(demArray, geoTransform, 'elevation.tif');
+            await downloadGeoTiffWithWorker(demArray, geoTransform, 'dem.tiff');
 
             threeCanvasWorker.postMessage({
                 type: 'addMesh',

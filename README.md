@@ -1,4 +1,4 @@
-# fgd-xml-dem-viewer
+# xml-dem-viewer
 
 基盤地図情報の DEM データ（XML）を表示するためのツールです。
 
