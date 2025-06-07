@@ -57,6 +57,88 @@ interface NpArrayData {
     array: number[][];
 }
 
+import type { ParseXmlTask, ParseXmlResult } from './worker/xmlParseWorker';
+
+export class ParallelXmlParser {
+    private workers: Worker[] = [];
+    private readonly maxWorkers = 4;
+
+    constructor() {
+        // 4つのWorkerを初期化
+        for (let i = 0; i < this.maxWorkers; i++) {
+            const worker = new Worker(new URL('./worker/xmlParseWorker.ts', import.meta.url), {
+                type: 'module',
+            });
+            this.workers.push(worker);
+        }
+    }
+
+    async parseXmlFiles(xmlTexts: string[], seaAtZero: boolean = false): Promise<DemContent[]> {
+        return new Promise((resolve, reject) => {
+            const results: DemContent[] = new Array(xmlTexts.length);
+            const errors: string[] = [];
+            let completedTasks = 0;
+            let nextTaskIndex = 0;
+
+            const processNextTask = (workerIndex: number) => {
+                if (nextTaskIndex >= xmlTexts.length) {
+                    return;
+                }
+
+                const taskId = nextTaskIndex++;
+                const task: ParseXmlTask = {
+                    id: taskId,
+                    xmlText: xmlTexts[taskId],
+                    seaAtZero,
+                };
+
+                this.workers[workerIndex].postMessage(task);
+            };
+
+            // 各Workerにメッセージハンドラーを設定
+            this.workers.forEach((worker, workerIndex) => {
+                worker.onmessage = (e) => {
+                    const result: ParseXmlResult = e.data;
+
+                    if (result.error) {
+                        errors.push(`Task ${result.id}: ${result.error}`);
+                    } else {
+                        results[result.id] = result.content;
+                    }
+
+                    completedTasks++;
+
+                    // 次のタスクがあれば処理
+                    processNextTask(workerIndex);
+
+                    // 全タスク完了チェック
+                    if (completedTasks === xmlTexts.length) {
+                        if (errors.length > 0) {
+                            reject(new Error(`XML parsing errors: ${errors.join(', ')}`));
+                        } else {
+                            resolve(results);
+                        }
+                    }
+                };
+
+                worker.onerror = (error) => {
+                    reject(new Error(`Worker error: ${error.message}`));
+                };
+            });
+
+            // 初期タスクを各Workerに配布
+            for (let i = 0; i < Math.min(this.maxWorkers, xmlTexts.length); i++) {
+                processNextTask(i);
+            }
+        });
+    }
+
+    terminate() {
+        this.workers.forEach((worker) => worker.terminate());
+        this.workers = [];
+    }
+}
+
 // カスタムエラークラス
 export class DemInputXmlException extends Error {
     constructor(message: string) {
@@ -83,13 +165,41 @@ export class Dem {
         this.seaAtZero = seaAtZero;
     }
 
-    // メインの処理メソッド
+    // メインの処理メソッド - 並列処理版
     public async contentsToArray(): Promise<void> {
+        console.log(`🚀 Starting parallel XML parsing with ${this.xmlTexts.length} files`);
+
+        const parser = new ParallelXmlParser();
+
+        try {
+            // 並列でXMLファイルを解析
+            this.allContentList = await parser.parseXmlFiles(this.xmlTexts, this.seaAtZero);
+
+            // メッシュコードでソート（地理的順序を保証）
+            this.allContentList.sort((a, b) => a.mesh_code - b.mesh_code);
+
+            console.log(`✅ Parallel XML parsing completed: ${this.allContentList.length} files processed`);
+
+            this.getMetadataList();
+            this.storeNpArrayList();
+            this.storeBoundsLatLng();
+        } finally {
+            // Workerを終了
+            parser.terminate();
+        }
+    }
+
+    // メインの処理メソッド
+    // 元のメソッドも残しておく（デバッグ用）
+    public async contentsToArraySequential(): Promise<void> {
         // 全XMLファイルからコンテンツを取得
         for (const xmlText of this.xmlTexts) {
             const content = await this.getXmlContent(xmlText);
             this.allContentList.push(content);
         }
+
+        // メッシュコードでソート
+        this.allContentList.sort((a, b) => a.mesh_code - b.mesh_code);
 
         this.getMetadataList();
         this.storeNpArrayList();
