@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import type { ParseXmlTask, ParseXmlResult } from "./worker.xml-parser";
+import type { ParseXmlTask, ParseXmlResult } from "./worker.xml-parser.ts";
 
 // 型定義
 interface LowerCorner {

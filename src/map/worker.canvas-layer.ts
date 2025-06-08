@@ -14,7 +14,7 @@ interface Props {
 
 let canvas: HTMLCanvasElement; // オフスクリーンキャンバスまたはHTMLCanvasElement
 let program: WebGLProgram | null = null;
-let gl: WebGLRenderingContext | null = null;
+let gl: WebGL2RenderingContext | null = null; // WebGL2に変更
 
 // メインスレッドから通達があったとき
 self.onmessage = (event) => {
@@ -124,9 +124,41 @@ const processCanvas = (option: CanvasOptions) => {
     gl.texImage2D(
         gl.TEXTURE_2D, // target
         0, // level
-        gl.R32F,
+        gl.R32F, // internalFormat
         width, // width
-        height, // height
+        height, // height        // リザイズ
+        window.addEventListener("resize", () => {
+            threeCanvasWorker.postMessage({
+                type: "resize",
+                width: innerWidth,
+                height: innerHeight,
+                devicePixelRatio: devicePixelRatio,
+            });
+        });
+        
+        // ...existing code...
+        
+        // downloadGeoTiffWithWorker関数をコメントアウトまたは削除
+        /*
+        const downloadGeoTiffWithWorker = async (
+            demArray: number[][],
+            geoTransform: GeoTransform,
+            filename: string,
+            dataType: "elevation" | "mapbox" = "elevation",
+        ): Promise<boolean> => {
+            // ...existing code...
+        };
+        */
+        
+        // ...existing code...
+        
+        // processFile関数内
+        const geotiffData = await createGeoTiffFromDem(dem);
+        const { geoTransform, demArray, imageSize } = geotiffData;
+        
+        loaded();
+        
+        await addMapLayerFromDem(geotiffData);
         0, // border
         gl.RED,
         gl.FLOAT,
