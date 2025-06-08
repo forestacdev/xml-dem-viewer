@@ -409,7 +409,7 @@ const sampleDem10bBtn = document.getElementById("sample-dem10b") as HTMLButtonEl
 if (sampleDem10bBtn) {
     sampleDem10bBtn.addEventListener("click", async () => {
         try {
-            const response = await fetch("./sample/FG-GML-543745-DEM10B-20161001.zip");
+            const response = await fetch("./sample/sample-dem10b.zip");
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -421,7 +421,7 @@ if (sampleDem10bBtn) {
             const blob = new Blob([arrayBuffer], { type: "application/zip" });
 
             // Fileオブジェクトを作成
-            const file = new File([blob], "FG-GML-543745-DEM10B-20161001.zip", {
+            const file = new File([blob], "sample-dem10b.zip", {
                 type: "application/zip",
                 lastModified: Date.now(),
             });
