@@ -2,8 +2,7 @@ import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { RasterLayerSpecification } from "maplibre-gl";
 
-import type { UniformValues } from "./worker.canvas-layer";
-import { uniforms } from "./worker.canvas-layer";
+import { uniforms } from "./uniforms";
 
 import type { GeoTiffData } from "../utils/geotiff";
 
@@ -234,3 +233,17 @@ pane.addBinding(uniforms as any, "u_min_color", {
         value: ev.value,
     });
 });
+
+// TODO: uniformsの更新
+canvasWorker.onmessage = (event) => {
+    switch (event.data.type) {
+        case "update":
+            uniforms.u_min_color = event.data.uniforms.u_min_color;
+            uniforms.u_max_color = event.data.uniforms.u_max_color;
+            uniforms.u_min = event.data.uniforms.u_min;
+            uniforms.u_max = event.data.uniforms.u_max;
+
+            pane.refresh();
+            break;
+    }
+};
