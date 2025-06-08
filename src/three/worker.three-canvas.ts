@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-import type { ImageSize, GeoTransform, Statistics } from "../utils/geotiff";
+import type { GeoTransform, Statistics } from "../utils/geotiff";
 import { generateDemMesh } from "./mesh";
 import { createDummyDomElement } from "../utils";
 

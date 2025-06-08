@@ -17,6 +17,7 @@ export const generateDemMesh = (
     demArray: number[][],
     geoTransform: GeoTransform,
     statistics: Statistics,
+    meshScale: number = 10, // スケーリング係数を追加（デフォルト: 100）
 ): THREE.Mesh => {
     // DEMデータのサイズを取得
     const height = demArray.length;
@@ -55,8 +56,7 @@ export const generateDemMesh = (
         pixelSizeMetersX = pixelSizeX * metersPerDegreeLon;
         pixelSizeMetersY = pixelSizeY * metersPerDegreeLat;
 
-        // Three.js空間での適切なスケール設定
-        const meshScale = 1000; // 1km = 1000 Three.js単位として設定
+        // 標高スケールもmeshScaleに合わせて調整
         elevationScale = 1 / meshScale; // 標高もスケール調整
     } else {
         // geoTransformがない場合のデフォルト値
@@ -69,11 +69,10 @@ export const generateDemMesh = (
 
         pixelSizeMetersX = (lonRange * metersPerDegreeLon) / width;
         pixelSizeMetersY = (latRange * metersPerDegreeLat) / height;
-        elevationScale = 0.001; // 1m = 0.001 Three.js単位
+        elevationScale = 1 / meshScale; // 標高もスケール調整（統一）
     }
 
     // Three.js空間でのピクセルサイズ（メートル単位をThree.js単位に変換）
-    const meshScale = 1000; // 1km = 1000 Three.js単位
     const dx = pixelSizeMetersX / meshScale;
     const dy = pixelSizeMetersY / meshScale;
 

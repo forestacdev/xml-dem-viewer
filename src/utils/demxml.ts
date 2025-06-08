@@ -148,10 +148,9 @@ export class ParallelXmlParser {
         });
     }
 
+    // TODO: Workerが終了しない
     terminate() {
         if (this.isTerminated) return;
-
-        alert("Parser is being terminated. All workers will be stopped.");
 
         this.isTerminated = true;
 
@@ -164,7 +163,6 @@ export class ParallelXmlParser {
         // Workerを終了
         this.workers.forEach((worker) => {
             try {
-                console.log("Terminating worker:", worker);
                 worker.terminate();
             } catch (error) {
                 console.warn("Error terminating worker:", error);
