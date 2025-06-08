@@ -5,13 +5,23 @@ import type { GeoTransform, Statistics } from "../utils/geotiff";
 import { generateDemMesh } from "./mesh";
 import { createDummyDomElement } from "../utils";
 
+import { uniforms } from "./uniforms";
+import { demMaterial } from "./mesh";
+
 let canvas: HTMLCanvasElement; // オフスクリーンキャンバスまたはHTMLCanvasElement
 let renderer: THREE.WebGLRenderer;
 let camera: THREE.PerspectiveCamera;
 let scene: THREE.Scene;
 let orbitControls: OrbitControls;
 
-type MessageType = "init" | "addMesh" | "resize" | "mouseEvent" | "wheelEvent" | "toggleView";
+type MessageType =
+    | "init"
+    | "addMesh"
+    | "resize"
+    | "mouseEvent"
+    | "wheelEvent"
+    | "toggleView"
+    | "updateUniforms";
 
 type MouseEventType = "mousedown" | "mousemove" | "mouseup" | "wheel";
 
@@ -34,10 +44,6 @@ interface Props {
     };
 }
 
-export const uniforms = {
-    u_color: { value: new THREE.Color("rgb(255,255,255)") },
-};
-
 // メインスレッドから通達があったとき
 self.onmessage = (event) => {
     switch (event.data.type) {
@@ -59,7 +65,27 @@ self.onmessage = (event) => {
         case "toggleView":
             toggleCanvasView(event.data.mode);
             break;
+        case "updateUniforms":
+            applyUniforms(event);
+            break;
+        default:
+            console.error(`Unknown message type: ${event.data.type}`);
+            break;
     }
+};
+
+const applyUniforms = (event: Props) => {
+    // uniformsの更新
+    if (uniforms[event.data.key] !== undefined) {
+        uniforms[event.data.key].value = event.data.value;
+        // レンダリングを再実行
+        renderer.render(scene, camera);
+    } else {
+        console.warn(`Uniform ${event.data.key} does not exist.`);
+    }
+
+    // レンダリングを再実行
+    renderer.render(scene, camera);
 };
 
 const toggleCanvasView = (val: boolean) => {
@@ -112,7 +138,9 @@ const init = (event: Props) => {
     // 毎フレーム時に実行されるループイベントです
     const tick = () => {
         // レンダリング
+        demMaterial.uniforms.u_scale.value = uniforms.u_scale.value;
         if (orbitControls) orbitControls.update();
+
         renderer.render(scene, camera);
         requestAnimationFrame(tick);
     };

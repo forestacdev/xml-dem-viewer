@@ -2,8 +2,8 @@
 
 基盤地図情報 DEM データ（xml）可視化ツール 🗻
 
-![alt text](image.png)
-![alt text](image-1.png)
+![alt text](image/image-1.png)
+![alt text](image/image-2.png)
 
 ## 概要
 

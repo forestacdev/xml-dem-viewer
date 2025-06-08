@@ -34,6 +34,9 @@ self.onmessage = (event) => {
         case "updateUniforms":
             applyUniforms(event.data.key, event.data.value);
             break;
+        default:
+            console.warn(`Unknown message type: ${event.data.type}`);
+            break;
     }
 };
 

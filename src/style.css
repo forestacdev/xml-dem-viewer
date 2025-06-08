@@ -78,3 +78,19 @@
 #toggle-view-button.c-mode-map > .c-map {
     color: #000;
 }
+
+body:has(#toggle-view-button.c-mode-map) #tweakpane-map {
+    display: block;
+}
+
+body:has(#toggle-view-button.c-mode-map) #tweakpane-3d {
+    display: none;
+}
+
+body:has(#toggle-view-button.c-mode-3d) #tweakpane-3d {
+    display: block;
+}
+
+body:has(#toggle-view-button.c-mode-3d) #tweakpane-map {
+    display: none;
+}

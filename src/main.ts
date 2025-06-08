@@ -7,6 +7,10 @@ import { loadingEnd, loadingStart } from "./utils/loading";
 import type { GeoTransform } from "./utils/geotiff";
 import { addMapLayerFromDem, toggleMapView } from "./map";
 
+import { uniforms } from "./three/uniforms";
+
+import { Pane } from "tweakpane";
+
 // キャンバス
 const canvas = document.getElementById("three-canvas") as HTMLCanvasElement;
 const offscreenCanvas = canvas.transferControlToOffscreen();
@@ -119,6 +123,20 @@ canvas.addEventListener("touchend", (event) => {
         button: 0,
         buttons: 0,
     });
+});
+
+const pane = new Pane({
+    title: "パラメーター",
+    container: document.getElementById("tweakpane-3d") as HTMLElement,
+});
+pane.addBinding(uniforms.u_scale, "value", {
+    min: 0,
+    max: 10,
+    label: "高さスケール",
+    step: 0.01,
+}).on("change", (ev) => {
+    uniforms.u_scale.value = ev.value;
+    threeCanvasWorker.postMessage({ type: "updateUniforms", key: "u_scale", value: ev.value });
 });
 
 // シンプルなWebWorker TIFF作成

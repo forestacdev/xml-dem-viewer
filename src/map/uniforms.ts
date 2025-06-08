@@ -15,7 +15,6 @@ export interface UniformValues {
     u_scale: number;
 }
 
-// グローバルなuniformsオブジェクト（外部から書き換え可能）
 export const uniforms: UniformValues = {
     u_resolution: [1, 1],
     u_bbox_4326: [0, 0, 0, 0],
