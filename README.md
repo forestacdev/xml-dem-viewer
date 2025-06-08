@@ -7,7 +7,7 @@
 
 ## 概要
 
-このツールは、[基盤地図情報の DEM データ](https://service.gsi.go.jp/kiban/app/map/?search=dem)をブラウザ上で表示するためのものです。DEM データは、地形の標高情報を含む XML フォーマットで提供されており、これを WebGL を使用して可視化します。
+このツールは、[基盤地図情報 数値標高モデル(DEM)データ](https://service.gsi.go.jp/kiban/app/map/?search=dem)をブラウザ上で表示するためのものです。DEM データは、地形の標高情報を含む XML フォーマットで提供されており、これを WebGL を使用して可視化します。
 
 xmlデータのパース処理は、QGIS プラグインの「[QuickDEM4JP](https://plugins.qgis.org/plugins/QuickDEM4JP/)」を参考に実装しています
 
