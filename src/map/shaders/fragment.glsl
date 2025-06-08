@@ -10,8 +10,25 @@ uniform float u_max;
 in vec2 v_tex_coord ;
 out vec4 fragColor;
 
+float R = 6378137.0; // メルカトル投影の地球半径
+
+// 経度→メルカトルX
+float lngToX(float lng) {
+    return radians(lng) * R;
+}
+
+// 緯度→メルカトルY
+float latToY(float lat) {
+    return R * log(tan(radians(lat) * 0.5 + 3.14159265 / 4.0));
+}
+
+// メルカトルY→緯度（逆変換）
+float yToLat(float y) {
+    return degrees(2.0 * atan(exp(y / R)) - 3.14159265 / 2.0);
+}
+
 mat3 calculateTerrainData(vec2 uv, float center_h) {
-    // すべてu_height_map_centerのみからサンプリング
+
     vec2 pixel_size = vec2(1.0) / u_resolution;
     mat3 _h_mat = mat3(0.0);
 
@@ -75,6 +92,34 @@ vec3 encodeHeight(float height) {
     return vec3(0.0, 0.0, 0.0);
 }
 
+//法線の計算
+vec3 calculateNormal(mat3 _h_mat) {
+          // 法線の計算
+    float dx = (_h_mat[0][0] + _h_mat[0][1] + _h_mat[0][2]) - 
+                    (_h_mat[2][0] + _h_mat[2][1] + _h_mat[2][2]);
+    float dy = (_h_mat[0][0] + _h_mat[1][0] + _h_mat[2][0]) - 
+                    (_h_mat[0][2] + _h_mat[1][2] + _h_mat[2][2]);
+    vec3 normal = normalize(cross(vec3(1.0, 0.0, dx), vec3(0.0, 1.0, dy)));
+    // 法線の長さを調整
+    normal = normalize(normal) * 0.5 + 0.5; // 法線を0-1の範囲に変換
+
+    return normal;
+}
+
+// ライティング計算関数　nomalを使ってライティング計算を行う
+vec3 calculateLighting(vec3 normal) {
+        // 法線を使ってライティング計算
+    vec3 lightDirection = normalize(vec3(0.5, 1.0, 0.3)); // ライトの方向
+    float NdotL = max(dot(normal, lightDirection), 0.0); // ライトとの角度
+    float ambient = 0.3; // 環境光の強さ
+    float lighting = ambient + NdotL * 0.7; // 全体の明度
+    // 基本色に陰影を適用
+    vec3 baseColor = vec3(0.5, 0.5, 0.5); // 基本色（グレースケール）
+    vec3 shadedColor = baseColor * lighting; // 陰影を適用  
+    return shadedColor;
+}
+
+
 
 void main() {
     vec2 uv = v_tex_coord;
@@ -86,35 +131,9 @@ void main() {
         return;
     }
 
-    mat3 h_mat = calculateTerrainData(uv, h);
-
-    vec3 agb = encodeHeight(h); // 高度をエンコード（使用しないが、計算のために呼び出す）
-
-
-
-        // 法線の計算
-    float dx = (h_mat[0][0] + h_mat[0][1] + h_mat[0][2]) - 
-                    (h_mat[2][0] + h_mat[2][1] + h_mat[2][2]);
-    float dy = (h_mat[0][0] + h_mat[1][0] + h_mat[2][0]) - 
-                    (h_mat[0][2] + h_mat[1][2] + h_mat[2][2]);
-    vec3 normal = normalize(cross(vec3(1.0, 0.0, dx), vec3(0.0, 1.0, dy)));
-    // 法線の長さを調整
-    normal = normalize(normal) * 0.5 + 0.5; // 法線を0-1の範囲に変換
-
-    // 法線を使ってライティング計算
-    vec3 lightDirection = normalize(vec3(0.5, 1.0, 0.3)); // ライトの方向
-    float NdotL = max(dot(normal, lightDirection), 0.0); // ライトとの角度
-    float ambient = 0.3; // 環境光の強さ
-    float lighting = ambient + NdotL * 0.7; // 全体の明度
-    // 基本色に陰影を適用
-    vec3 baseColor = vec3(0.5, 0.5, 0.5); // 基本色（グレースケール）
-    vec3 shadedColor = baseColor * lighting; // 陰影を適用
-
-
 	float normalized = clamp((h - u_min) / (u_max - u_min), 0.0, 1.0);
     // グレースケールで出力
     vec4 value_color = vec4(vec3(normalized), 1.0);
-
 
     fragColor = value_color; // グレースケールで出力
 
