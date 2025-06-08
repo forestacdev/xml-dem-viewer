@@ -17,8 +17,8 @@
         <!-- <meta property="og:image"   content="./ogp.jpg" /> -->
         <meta property="og:description" content="基盤地図情報DEMデータ 可視化ツール" />
         <meta name="twitter:card" content="summary" />
-      <script type="module" crossorigin src="./index-DjoG1P1w.js"></script>
-      <link rel="stylesheet" crossorigin href="./index-ClKrliw0.css">
+      <script type="module" crossorigin src="./index-D0gAytpe.js"></script>
+      <link rel="stylesheet" crossorigin href="./index-BECa8Rcy.css">
     </head>
     <body class="overflow-hidden m-0 p-0 relative h-dvh w-dvw">
         <div id="map" class="h-full w-full absolute top-0 left-0"></div>
@@ -67,18 +67,26 @@
             </button>
             <div id="tweakpane-map" class="absolute right-4 top-18 pointer-events-auto z-50"></div>
             <div id="tweakpane-3d" class="absolute right-4 top-18 pointer-events-auto z-50"></div>
-            <button
-                id="export-button"
-                class="absolute bottom-12 right-4 rounded-full flex overflow-hidden cursor-pointer justify-between items-center border-2 border-black bg-white pointer-events-auto"
-            >
-                <span class="p-2 px-4 c-map z-10 transition-colors"
-                    >geotiffをエクスポート（実験的）</span
+            <div class="absolute bottom-12 right-4 flex gap-4">
+                <button
+                    id="delete-button"
+                    class="rounded-full flex overflow-hidden cursor-pointer justify-between items-center border-2 border-black bg-white pointer-events-auto"
                 >
-            </button>
+                    <span class="p-2 px-4 c-map z-10 transition-colors">削除</span>
+                </button>
+                <button
+                    id="export-button"
+                    class="rounded-full flex overflow-hidden cursor-pointer justify-between items-center border-2 border-black bg-white pointer-events-auto"
+                >
+                    <span class="p-2 px-4 c-map z-10 transition-colors"
+                        >geotiffをエクスポート（実験的）</span
+                    >
+                </button>
+            </div>
         </div>
         <a
             id="github-button"
-            class="absolute top-4 left-4 z-100 rounded-full p-2 pointer-events-auto cursor-pointer drop-shadow-2xl"
+            class="absolute top-4 left-4 z-100 rounded-full p-2 pointer-events-auto cursor-pointer drop-shadow-2xl bg-black"
             href="https://github.com/forestacdev/xml-dem-viewer"
             target="_blank"
             rel="noopener noreferrer"
