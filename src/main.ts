@@ -2,6 +2,7 @@ import "./style.css";
 
 import { createDemFromUpload } from "./utils/demxml";
 import { createGeoTiffFromDem } from "./utils/geotiff";
+import { loadingEnd, loadingStart } from "./utils/loading";
 
 import type { GeoTransform } from "./utils/geotiff";
 import { addMapLayerFromDem, toggleMapView } from "./map";
@@ -268,6 +269,7 @@ const downloadGeoTiffWithWorker = async (
 };
 
 const processFile = async (input: File | File[]) => {
+    loadingStart();
     const isInputArray = Array.isArray(input);
     const firstFile = isInputArray ? input[0] : input;
 
@@ -392,12 +394,13 @@ const initializeDragAndDrop = () => {
     });
 };
 
-const loaded = () => {
+const loaded = async () => {
     if (dropZone) dropZone.style.display = "none";
     const pane = document.getElementById("pane");
     if (pane) {
         pane.style.display = "block"; // パネルを表示
     }
+    await loadingEnd();
 };
 
 // DOMが読み込まれた後に初期化
