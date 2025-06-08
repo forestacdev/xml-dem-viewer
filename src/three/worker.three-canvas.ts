@@ -1,18 +1,19 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-import type { ImageSize, GeoTransform } from '../utils/geotiff';
-import { generateDemMesh } from './mesh';
-import { createDummyDomElement } from '../utils';
+import type { ImageSize, GeoTransform } from "../utils/geotiff";
+import { generateDemMesh } from "./mesh";
+import { createDummyDomElement } from "../utils";
 
+let canvas: HTMLCanvasElement; // オフスクリーンキャンバスまたはHTMLCanvasElement
 let renderer: THREE.WebGLRenderer;
 let camera: THREE.PerspectiveCamera;
 let scene: THREE.Scene;
 let orbitControls: OrbitControls;
 
-type MessageType = 'init' | 'addMesh' | 'resize' | 'mouseEvent' | 'wheelEvent' | 'toggleView';
+type MessageType = "init" | "addMesh" | "resize" | "mouseEvent" | "wheelEvent" | "toggleView";
 
-type MouseEventType = 'mousedown' | 'mousemove' | 'mouseup' | 'wheel';
+type MouseEventType = "mousedown" | "mousemove" | "mouseup" | "wheel";
 
 interface Props {
     data: {
@@ -34,28 +35,28 @@ interface Props {
 }
 
 export const uniforms = {
-    uColor: { value: new THREE.Color('rgb(255,255,255)') },
+    uColor: { value: new THREE.Color("rgb(255,255,255)") },
 };
 
 // メインスレッドから通達があったとき
 self.onmessage = (event) => {
     switch (event.data.type) {
-        case 'init':
+        case "init":
             init(event);
             break;
-        case 'addMesh':
+        case "addMesh":
             addMesh(event.data.demArray, event.data.geoTransform, event.data.imageSize);
             break;
-        case 'resize':
+        case "resize":
             resize(event.data.width, event.data.height, event.data.devicePixelRatio);
             break;
-        case 'mouseEvent':
+        case "mouseEvent":
             handleMouseEvent(event.data);
             break;
-        case 'wheelEvent':
+        case "wheelEvent":
             handleWheelEvent(event.data);
             break;
-        case 'toggleView':
+        case "toggleView":
             toggleCanvasView(event.data.mode);
             break;
     }
@@ -63,17 +64,21 @@ self.onmessage = (event) => {
 
 const toggleCanvasView = (val: boolean) => {
     // canvasの表示/非表示を切り替える
-    const canvas = (self as any).canvas; // ワーカー内でcanvasを参照
+    if (!canvas) {
+        console.error("Canvas is not initialized.");
+        return;
+    }
+
     if (val) {
-        canvas.style.display = 'block'; // 3Dビューに切り替え
+        canvas.style.display = "block"; // 3Dビューに切り替え
     } else {
-        canvas.style.display = 'none'; // マップビューに切り替え
+        canvas.style.display = "none"; // マップビューに切り替え
     }
 };
 
 const init = (event: Props) => {
     // メインスレッドからオフスクリーンキャンバスを受け取る
-    const canvas = event.data.canvas;
+    canvas = event.data.canvas;
     // スクリーン情報を受け取る
     const width = event.data.width;
     const height = event.data.height;
@@ -81,8 +86,8 @@ const init = (event: Props) => {
     // Three.jsのライブラリの内部で style.width にアクセスされてしまう
     // 対策しないと、エラーが発生するためダミーの値を指定
     canvas.style = {
-        width: '0px',
-        height: '0px',
+        width: "0px",
+        height: "0px",
     } as any;
 
     // レンダラーを作成
@@ -102,7 +107,7 @@ const init = (event: Props) => {
     orbitControls.enablePan = false;
 
     const grid = new THREE.GridHelper(1000, 100, 0x0000ff, 0x808080);
-    grid.name = 'grid';
+    grid.name = "grid";
     scene.add(grid);
 
     resize(width, height, devicePixelRatio);
@@ -124,7 +129,7 @@ const handleMouseEvent = (eventData: any) => {
     const { type, clientX, clientY, button, buttons, eventType } = eventData;
 
     // OrbitControlsの内部状態を直接操作
-    if (eventType === 'mousedown') {
+    if (eventType === "mousedown") {
         orbitControls.enabled = true;
         // @ts-ignore - 内部プロパティにアクセス
         orbitControls._onPointerDown({
@@ -134,7 +139,7 @@ const handleMouseEvent = (eventData: any) => {
             preventDefault: () => {},
             stopPropagation: () => {},
         });
-    } else if (eventType === 'mousemove') {
+    } else if (eventType === "mousemove") {
         // @ts-ignore
         orbitControls._onPointerMove({
             clientX,
@@ -142,7 +147,7 @@ const handleMouseEvent = (eventData: any) => {
             preventDefault: () => {},
             stopPropagation: () => {},
         });
-    } else if (eventType === 'mouseup') {
+    } else if (eventType === "mouseup") {
         // @ts-ignore
         orbitControls._onPointerUp({
             preventDefault: () => {},
@@ -165,7 +170,7 @@ const handleWheelEvent = (eventData: any) => {
 
 const addMesh = (demArray: number[][], geoTransform: GeoTransform, imageSize: ImageSize) => {
     // 既存のメッシュをクリア
-    const existingMesh = scene.getObjectByName('demMesh');
+    const existingMesh = scene.getObjectByName("demMesh");
     if (existingMesh) {
         scene.remove(existingMesh);
         (existingMesh as THREE.Mesh).geometry.dispose();
