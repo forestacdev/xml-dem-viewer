@@ -44,16 +44,18 @@
                 </a>
             </div>
         </div>
-        <button
-            id="toggle-view-button"
-            class="c-mode-map absolute top-4 right-4 bg-gray-500 text-white rounded-full flex overflow-hidden w-[130px] cursor-pointer justify-between items-center border-2 border-black"
-        >
-            <span
-                class="c-switch absolute w-3/5 h-full rounded-full transition-transform duration-300 bg-white"
-            ></span>
-            <span class="p-2 px-4 c-map z-10 transition-colors">地図</span>
-            <span class="p-2 px-4 c-3d z-10 transition-colors"> 3D </span>
-        </button>
+        <div id="pane" class="absolute top-0 left-0 w-full h-full pointer-events-none">
+            <button
+                id="toggle-view-button"
+                class="c-mode-map absolute top-4 right-4 bg-gray-500 text-white rounded-full flex overflow-hidden w-[130px] cursor-pointer justify-between items-center border-2 border-black pointer-events-auto"
+            >
+                <span
+                    class="c-switch absolute w-3/5 h-full rounded-full transition-transform duration-300 bg-white"
+                ></span>
+                <span class="p-2 px-4 c-map z-10 transition-colors">地図</span>
+                <span class="p-2 px-4 c-3d z-10 transition-colors"> 3D </span>
+            </button>
+        </div>
         <div
             id="status-message"
             style="

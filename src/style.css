@@ -20,7 +20,12 @@
     font-size: 24px;
 }
 
-#three-canvas {
+#pane {
+    display: none;
+}
+
+#pane.active {
+    display: block;
 }
 
 #status-message {

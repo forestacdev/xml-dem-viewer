@@ -316,10 +316,12 @@ const processFile = async (input: File | File[]) => {
             const geotiffData = await createGeoTiffFromDem(dem);
             const { geoTransform, demArray, imageSize, statistics } = geotiffData;
 
+            loaded();
+
             await addMapLayerFromDem(geotiffData);
 
             // GeoTIFFダウンロード
-            await downloadGeoTiffWithWorker(demArray, geoTransform, "dem.tiff", "mapbox");
+            // await downloadGeoTiffWithWorker(demArray, geoTransform, "dem.tiff", "elevation");
 
             threeCanvasWorker.postMessage({
                 type: "addMesh",
@@ -342,27 +344,22 @@ const dropZone = document.getElementById("drop-zone");
 // ドラッグアンドドロップ機能の初期化
 const initializeDragAndDrop = () => {
     if (!dropZone) return;
-
     let dragCounter = 0;
 
     // ドラッグ開始時
     document.addEventListener("dragenter", (e) => {
         e.preventDefault();
         dragCounter++;
-        dropZone.style.display = "flex";
     });
-
     // ドラッグ中
     document.addEventListener("dragover", (e) => {
         e.preventDefault();
     });
-
     // ドラッグ終了時
     document.addEventListener("dragleave", (e) => {
         e.preventDefault();
         dragCounter--;
         if (dragCounter === 0) {
-            dropZone.style.display = "none";
         }
     });
 
@@ -372,7 +369,6 @@ const initializeDragAndDrop = () => {
         fileInput.addEventListener("change", async (e) => {
             e.preventDefault();
             dragCounter = 0;
-            dropZone.style.display = "none";
             const target = e.target as HTMLInputElement;
             if (target.files && target.files.length > 0) {
                 const file = target.files[0];
@@ -385,7 +381,6 @@ const initializeDragAndDrop = () => {
     document.addEventListener("drop", async (e) => {
         e.preventDefault();
         dragCounter = 0;
-        dropZone.style.display = "none";
 
         const files = e.dataTransfer?.files;
         if (files && files.length > 0) {
@@ -393,6 +388,14 @@ const initializeDragAndDrop = () => {
             processFile(file);
         }
     });
+};
+
+const loaded = () => {
+    if (dropZone) dropZone.style.display = "none";
+    const pane = document.getElementById("pane");
+    if (pane) {
+        pane.style.display = "block"; // パネルを表示
+    }
 };
 
 // DOMが読み込まれた後に初期化
