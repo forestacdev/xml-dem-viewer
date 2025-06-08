@@ -1,4 +1,4 @@
-import type { GeoTransform } from "./geotiff";
+import type { GeoTransform } from "../utils/geotiff";
 // GeoTIFF作成関数
 const createGeoTiffBufferWorker = (
     demArray: number[][],

@@ -1,4 +1,4 @@
-import type { GeoTransform } from "./geotiff";
+import type { GeoTransform } from "../utils/geotiff";
 
 // 標高値をTerrain RGB形式にエンコード
 

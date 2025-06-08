@@ -405,9 +405,9 @@ document.addEventListener("DOMContentLoaded", () => {
     initializeDragAndDrop();
 });
 
-const sampleDem5aBtn = document.getElementById("sample-dem10b") as HTMLButtonElement;
-if (sampleDem5aBtn) {
-    sampleDem5aBtn.addEventListener("click", async () => {
+const sampleDem10bBtn = document.getElementById("sample-dem10b") as HTMLButtonElement;
+if (sampleDem10bBtn) {
+    sampleDem10bBtn.addEventListener("click", async () => {
         try {
             const response = await fetch("./sample/FG-GML-543745-DEM10B-20161001.zip");
 
@@ -425,11 +425,6 @@ if (sampleDem5aBtn) {
                 type: "application/zip",
                 lastModified: Date.now(),
             });
-
-            // ファイルサイズとタイプをログ出力
-            console.log(`File size: ${file.size} bytes`);
-            console.log(`File type: ${file.type}`);
-            console.log(`File name: ${file.name}`);
 
             await processFile(file);
             if (dropZone) dropZone.style.display = "none"; // ドロップゾーンを非表示にする
