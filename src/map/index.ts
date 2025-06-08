@@ -56,7 +56,7 @@ export const mapLibreMap = new maplibregl.Map({
                 minzoom: 0,
                 maxzoom: 22,
                 paint: {
-                    "raster-opacity": 0.9,
+                    "raster-opacity": 0.7,
                     "raster-brightness-min": 1.0, // 画像の明るさ最小値
                     "raster-brightness-max": 0.0, // 画像の明るさ最大値
                     "raster-saturation": -1.0, // 画像の彩度

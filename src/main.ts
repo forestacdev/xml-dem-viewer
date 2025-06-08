@@ -403,11 +403,11 @@ document.addEventListener("DOMContentLoaded", () => {
     initializeDragAndDrop();
 });
 
-const sampleDem5aBtn = document.getElementById("sample-dem5a") as HTMLButtonElement;
+const sampleDem5aBtn = document.getElementById("sample-dem10b") as HTMLButtonElement;
 if (sampleDem5aBtn) {
     sampleDem5aBtn.addEventListener("click", async () => {
         try {
-            const response = await fetch("./sample/FG-GML-543745-DEM5A-20250214.zip");
+            const response = await fetch("./sample/FG-GML-543745-DEM10B-20161001.zip");
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -419,7 +419,7 @@ if (sampleDem5aBtn) {
             const blob = new Blob([arrayBuffer], { type: "application/zip" });
 
             // Fileオブジェクトを作成
-            const file = new File([blob], "FG-GML-543745-DEM5A-20250214.zip", {
+            const file = new File([blob], "FG-GML-543745-DEM10B-20161001.zip", {
                 type: "application/zip",
                 lastModified: Date.now(),
             });
