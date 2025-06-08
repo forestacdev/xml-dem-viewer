@@ -452,6 +452,7 @@ if (deleteButton) {
 }
 
 // エクスポート
+// TODO 複数エクスポートされる
 const sampleDem10bBtn = document.getElementById("sample-dem10b") as HTMLButtonElement;
 if (sampleDem10bBtn) {
     sampleDem10bBtn.addEventListener("click", async () => {
