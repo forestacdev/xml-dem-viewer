@@ -6,6 +6,7 @@ import { generateDemMesh } from "./mesh";
 import { createDummyDomElement } from "../utils";
 
 import { uniforms } from "./uniforms";
+import type { UniformValues } from "./uniforms";
 import { demMaterial } from "./mesh";
 
 let canvas: HTMLCanvasElement; // オフスクリーンキャンバスまたはHTMLCanvasElement
@@ -41,6 +42,8 @@ interface Props {
         geoTransform: number[];
         imageSize: { x: number; y: number };
         isView: boolean;
+        key?: string; // updateUniforms用
+        value?: any; // updateUniforms用
     };
 }
 
@@ -76,8 +79,8 @@ self.onmessage = (event) => {
 
 const applyUniforms = (event: Props) => {
     // uniformsの更新
-    if (uniforms[event.data.key] !== undefined) {
-        uniforms[event.data.key].value = event.data.value;
+    if (uniforms[event.data.key as keyof UniformValues] !== undefined) {
+        uniforms[event.data.key as keyof UniformValues].value = event.data.value;
         // レンダリングを再実行
         renderer.render(scene, camera);
     } else {

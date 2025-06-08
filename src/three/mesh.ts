@@ -36,7 +36,7 @@ export const generateDemMesh = (
     }
 
     // bboxから中心座標を計算
-    const centerLon = (bbox[0] + bbox[2]) / 2; // (west + east) / 2
+    // const centerLon = (bbox[0] + bbox[2]) / 2; // (west + east) / 2
     const centerLat = (bbox[1] + bbox[3]) / 2; // (south + north) / 2
     const centerLatRad = (centerLat * Math.PI) / 180;
 
