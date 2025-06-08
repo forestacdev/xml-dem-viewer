@@ -433,6 +433,7 @@ document.addEventListener("DOMContentLoaded", () => {
 const sampleDem10bBtn = document.getElementById("sample-dem10b") as HTMLButtonElement;
 if (sampleDem10bBtn) {
     sampleDem10bBtn.addEventListener("click", async () => {
+        loadingStart();
         try {
             const response = await fetch("./sample/sample-dem10b.zip");
 
@@ -456,6 +457,7 @@ if (sampleDem10bBtn) {
         } catch (error) {
             console.error("Error fetching or processing sample DEM:", error);
             alert("サンプルDEMファイルの取得または処理に失敗しました");
+            await loadingEnd();
         }
     });
 }
