@@ -74,6 +74,7 @@ self.onmessage = (event) => {
             break;
         case "clear":
             removeMesh();
+            break;
         default:
             console.error(`Unknown message type: ${event.data.type}`);
             break;
