@@ -28,7 +28,7 @@ threeCanvasWorker.postMessage(
 );
 
 // リザイズ
-window.addEventListener("resize", (event) => {
+window.addEventListener("resize", () => {
     threeCanvasWorker.postMessage({
         type: "resize",
         width: innerWidth,
@@ -314,7 +314,7 @@ const processFile = async (input: File | File[]) => {
             }
 
             const geotiffData = await createGeoTiffFromDem(dem);
-            const { geoTransform, demArray, imageSize, statistics } = geotiffData;
+            const { geoTransform, demArray, imageSize } = geotiffData;
 
             loaded();
 

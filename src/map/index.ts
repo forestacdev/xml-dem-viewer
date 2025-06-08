@@ -74,7 +74,7 @@ export const addMapLayerFromDem = async (geotiffData: GeoTiffData) => {
         throw new Error("MapLibre map instance is not initialized.");
     }
 
-    const { geoTransform, demArray, imageSize, statistics } = geotiffData;
+    const { demArray, statistics } = geotiffData;
 
     const height = demArray.length;
     const width = demArray[0]?.length || 0;

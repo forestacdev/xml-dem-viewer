@@ -22,6 +22,7 @@ const elevationToTerrainRGB = (elevation: number): [number, number, number, numb
 };
 
 // Terrain RGB GeoTIFF作成関数
+// @ts-ignore
 const createTerrainRGBGeoTiffBuffer = (
     demArray: number[][],
     geoTransform: GeoTransform,
@@ -29,7 +30,7 @@ const createTerrainRGBGeoTiffBuffer = (
     const height = demArray.length;
     const width = demArray[0].length;
     const samplesPerPixel = 4; // RGBA
-    const bitsPerSample = 8; // 8-bit per channel
+    // const bitsPerSample = 8; // 8-bit per channel
     const bytesPerPixel = samplesPerPixel; // 4 bytes (RGBA)
     const imageDataSize = width * height * bytesPerPixel;
 
@@ -264,7 +265,7 @@ const createTerrainRGBGeoTiffBuffer_RGB = (
     const height = demArray.length;
     const width = demArray[0].length;
     const samplesPerPixel = 3; // RGBのみ
-    const bitsPerSample = 8;
+    // const bitsPerSample = 8;
     const bytesPerPixel = samplesPerPixel;
     const imageDataSize = width * height * bytesPerPixel;
 
@@ -518,7 +519,7 @@ const createTerrainRGBGeoTiffBuffer_RGB = (
 
 // WebWorkerのメッセージハンドラー
 self.onmessage = (e) => {
-    const { demArray, geoTransform, testEncoding = false } = e.data;
+    const { demArray, geoTransform } = e.data;
 
     try {
         self.postMessage({

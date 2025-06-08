@@ -115,8 +115,6 @@ const init = (event: Props) => {
 
     // 毎フレーム時に実行されるループイベントです
     const tick = () => {
-        const target = orbitControls.target;
-
         // レンダリング
         if (orbitControls) orbitControls.update();
         renderer.render(scene, camera);
@@ -127,7 +125,7 @@ const init = (event: Props) => {
 
 // マウスイベントを処理
 const handleMouseEvent = (eventData: any) => {
-    const { type, clientX, clientY, button, buttons, eventType } = eventData;
+    const { clientX, clientY, button, eventType } = eventData;
 
     // OrbitControlsの内部状態を直接操作
     if (eventType === "mousedown") {

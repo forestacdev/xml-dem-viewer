@@ -1,6 +1,9 @@
-import type { GeoTransform } from './geotiff';
+import type { GeoTransform } from "./geotiff";
 // GeoTIFF作成関数
-const createGeoTiffBufferWorker = (demArray: number[][], geoTransform: GeoTransform): ArrayBuffer => {
+const createGeoTiffBufferWorker = (
+    demArray: number[][],
+    geoTransform: GeoTransform,
+): ArrayBuffer => {
     const height = demArray.length;
     const width = demArray[0].length;
     const bytesPerPixel = 4;
@@ -55,7 +58,7 @@ const createGeoTiffBufferWorker = (demArray: number[][], geoTransform: GeoTransf
 
     const geoKeyDirectoryOffset = tiffHeaderSize + ifdSize;
     // NODATA値を文字列として格納するためのオフセット
-    const nodataString = '-9999';
+    const nodataString = "-9999";
     const nodataStringOffset = geoKeyDirectoryOffset + geoKeyDirectory.length * 2;
     const modelPixelScaleOffset = nodataStringOffset + nodataString.length + 1; // null終端を含む
     const modelTiepointOffset = modelPixelScaleOffset + 3 * 8;
@@ -120,7 +123,7 @@ const createGeoTiffBufferWorker = (demArray: number[][], geoTransform: GeoTransf
     geoKeyView.set(geoKeyDirectory);
 
     // === NODATA文字列 ===
-    const nodataBytes = new TextEncoder().encode(nodataString + '\0'); // null終端
+    const nodataBytes = new TextEncoder().encode(nodataString + "\0"); // null終端
     const nodataView = new Uint8Array(buffer, nodataStringOffset, nodataBytes.length);
     nodataView.set(nodataBytes);
 
@@ -151,33 +154,33 @@ self.onmessage = (e) => {
     const { demArray, geoTransform } = e.data;
 
     try {
-        self.postMessage({ type: 'progress', message: 'GeoTIFF処理開始...', progress: 0 });
+        self.postMessage({ type: "progress", message: "GeoTIFF処理開始...", progress: 0 });
 
         // データ検証
         if (!demArray || !demArray.length || !demArray[0] || !demArray[0].length) {
-            throw new Error('Invalid demArray data');
+            throw new Error("Invalid demArray data");
         }
 
         if (!geoTransform || geoTransform.length !== 6) {
-            throw new Error('Invalid geoTransform data (must be array of 6 elements)');
+            throw new Error("Invalid geoTransform data (must be array of 6 elements)");
         }
 
         self.postMessage({
-            type: 'info',
+            type: "info",
             message: `処理データ: ${demArray[0].length} × ${demArray.length} pixels`,
         });
 
         const buffer = createGeoTiffBufferWorker(demArray, geoTransform);
 
         self.postMessage({
-            type: 'complete',
+            type: "complete",
             buffer: buffer,
-            message: 'GeoTIFF作成完了',
+            message: "GeoTIFF作成完了",
         });
     } catch (error) {
         if (error instanceof Error) {
             self.postMessage({
-                type: 'error',
+                type: "error",
                 error: error.message,
                 stack: error.stack,
             });
@@ -187,22 +190,22 @@ self.onmessage = (e) => {
 
 // WebWorkerのメッセージハンドラー
 self.onmessage = (e) => {
-    const { type, demArray, geoTransform, includeGeoInfo } = e.data;
+    const { demArray, geoTransform } = e.data;
 
     try {
-        self.postMessage({ type: 'progress', message: '処理開始...', progress: 0 });
+        self.postMessage({ type: "progress", message: "処理開始...", progress: 0 });
 
         let buffer = createGeoTiffBufferWorker(demArray, geoTransform);
 
         self.postMessage({
-            type: 'complete',
+            type: "complete",
             buffer: buffer,
-            message: 'TIFF作成完了',
+            message: "TIFF作成完了",
         });
     } catch (error) {
         if (error instanceof Error) {
             self.postMessage({
-                type: 'error',
+                type: "error",
                 error: error.message,
                 stack: error.stack,
             });
