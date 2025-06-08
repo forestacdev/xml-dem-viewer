@@ -35,7 +35,7 @@ interface Props {
 }
 
 export const uniforms = {
-    uColor: { value: new THREE.Color("rgb(255,255,255)") },
+    u_color: { value: new THREE.Color("rgb(255,255,255)") },
 };
 
 // メインスレッドから通達があったとき
@@ -79,6 +79,7 @@ const toggleCanvasView = (val: boolean) => {
 const init = (event: Props) => {
     // メインスレッドからオフスクリーンキャンバスを受け取る
     canvas = event.data.canvas;
+    const context = canvas.getContext("webgl2") as WebGL2RenderingContext;
     // スクリーン情報を受け取る
     const width = event.data.width;
     const height = event.data.height;
@@ -93,7 +94,7 @@ const init = (event: Props) => {
     // レンダラーを作成
     renderer = new THREE.WebGLRenderer({
         canvas,
-        antialias: true,
+        context,
         alpha: true,
     });
 

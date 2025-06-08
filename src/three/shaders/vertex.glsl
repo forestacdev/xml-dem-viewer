@@ -1,23 +1,18 @@
-varying vec2 vUv;// fragmentShaderに渡すためのvarying変数
-varying vec3 vPosition;
-uniform float uTime;
-varying vec3 vNormal;
-varying mat4 vModelMatrix;
-varying mat4 v_modelMatrix;
-varying float v_fogDistance;
+precision highp float;
 
-layout(location = 0) in vec3 aPos; // 頂点の位置
+out vec2 v_uv;// fragmentShaderに渡すためのvarying変数
+out vec3 v_position;
+uniform float uTime;
+out vec3 v_normal;
+out mat4 v_model_matrix;
 
 void main() {
-    vUv = uv;
-    vPosition = position;
-    vNormal = normal;
-    vModelMatrix = modelMatrix;
+    v_uv = uv;
+    v_position = position;
+    v_normal = normal;
+    v_model_matrix = modelMatrix;
     // ワールド座標を計算
     vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-    v_modelMatrix = modelMatrix;
 
-    // 中心 (0, 0, 0) からの距離を計算
-    v_fogDistance = length(worldPosition.xyz);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }

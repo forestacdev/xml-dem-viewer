@@ -11,6 +11,7 @@ export const demMaterial = new THREE.ShaderMaterial({
     vertexShader,
     fragmentShader,
     transparent: true,
+    glslVersion: THREE.GLSL3,
 });
 
 export const generateDemMesh = (
