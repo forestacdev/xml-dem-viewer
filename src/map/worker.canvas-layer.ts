@@ -126,39 +126,7 @@ const processCanvas = (option: CanvasOptions) => {
         0, // level
         gl.R32F, // internalFormat
         width, // width
-        height, // height        // リザイズ
-        window.addEventListener("resize", () => {
-            threeCanvasWorker.postMessage({
-                type: "resize",
-                width: innerWidth,
-                height: innerHeight,
-                devicePixelRatio: devicePixelRatio,
-            });
-        });
-        
-        // ...existing code...
-        
-        // downloadGeoTiffWithWorker関数をコメントアウトまたは削除
-        /*
-        const downloadGeoTiffWithWorker = async (
-            demArray: number[][],
-            geoTransform: GeoTransform,
-            filename: string,
-            dataType: "elevation" | "mapbox" = "elevation",
-        ): Promise<boolean> => {
-            // ...existing code...
-        };
-        */
-        
-        // ...existing code...
-        
-        // processFile関数内
-        const geotiffData = await createGeoTiffFromDem(dem);
-        const { geoTransform, demArray, imageSize } = geotiffData;
-        
-        loaded();
-        
-        await addMapLayerFromDem(geotiffData);
+        height, // height
         0, // border
         gl.RED,
         gl.FLOAT,
