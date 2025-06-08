@@ -1,7 +1,13 @@
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import type { RasterLayerSpecification } from "maplibre-gl";
+
+import type { UniformValues } from "./worker.canvas-layer";
+import { uniforms } from "./worker.canvas-layer";
 
 import type { GeoTiffData } from "../utils/geotiff";
+
+import { Pane } from "tweakpane";
 
 export interface CanvasOptions {
     array: Float32Array;
@@ -69,6 +75,15 @@ export const mapLibreMap = new maplibregl.Map({
     zoom: 4,
 });
 
+const canvasLayer: RasterLayerSpecification = {
+    id: "canvas-layer",
+    type: "raster",
+    source: "canvas-source",
+    paint: {
+        "raster-opacity": 1.0, // 初期の不透明度
+    },
+};
+
 export const addMapLayerFromDem = async (geotiffData: GeoTiffData) => {
     if (!mapLibreMap) {
         throw new Error("MapLibre map instance is not initialized.");
@@ -133,11 +148,7 @@ export const addMapLayerFromDem = async (geotiffData: GeoTiffData) => {
         animate: true,
     });
     // レイヤー追加
-    mapLibreMap.addLayer({
-        id: "canvas-layer",
-        type: "raster",
-        source: "canvas-source",
-    });
+    mapLibreMap.addLayer(canvasLayer);
 
     mapLibreMap.fitBounds(bbox, {
         padding: { top: 50, bottom: 50, left: 50, right: 50 },
@@ -156,3 +167,70 @@ export const toggleMapView = (isVisible: boolean) => {
         mapLibreMap.resize();
     }
 };
+
+const pane = new Pane({
+    title: "パラメーター",
+    container: document.getElementById("tweakpane-map") as HTMLElement,
+});
+pane.addBinding(canvasLayer.paint as any, "raster-opacity", {
+    min: 0,
+    max: 1,
+    label: "不透明度",
+    step: 0.01,
+}).on("change", (ev) => {
+    const mapLayer = mapLibreMap.getLayer(canvasLayer.id);
+    if (mapLayer) {
+        mapLibreMap.setPaintProperty(canvasLayer.id, "raster-opacity", ev.value);
+    }
+});
+pane.addBinding(uniforms as any, "u_max", {
+    min: 0,
+    max: 4000,
+    label: "最大",
+    step: 0.01,
+}).on("change", (ev) => {
+    uniforms.u_max = ev.value;
+    canvasWorker.postMessage({
+        type: "updateUniforms",
+        key: "u_max",
+        value: ev.value,
+    });
+});
+
+pane.addBinding(uniforms as any, "u_min", {
+    min: 0,
+    max: 4000,
+    label: "最小",
+    step: 0.01,
+}).on("change", (ev) => {
+    uniforms.u_min = ev.value;
+    canvasWorker.postMessage({
+        type: "updateUniforms",
+        key: "u_min",
+        value: ev.value,
+    });
+});
+
+pane.addBinding(uniforms as any, "u_max_color", {
+    label: "最大色",
+    color: { type: "float" },
+}).on("change", (ev) => {
+    uniforms.u_max_color = ev.value;
+    canvasWorker.postMessage({
+        type: "updateUniforms",
+        key: "u_max_color",
+        value: ev.value,
+    });
+});
+
+pane.addBinding(uniforms as any, "u_min_color", {
+    label: "最小色",
+    color: { type: "float" },
+}).on("change", (ev) => {
+    uniforms.u_min_color = ev.value;
+    canvasWorker.postMessage({
+        type: "updateUniforms",
+        key: "u_min_color",
+        value: ev.value,
+    });
+});

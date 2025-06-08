@@ -6,6 +6,8 @@ uniform vec2 u_resolution;
 uniform float u_dem_type; // 0: mapbox, 1: gsi, 2: terrarium
 uniform float u_min;
 uniform float u_max;
+uniform vec3 u_min_color; // [r, g, b] 0-1 range
+uniform vec3 u_max_color;
 uniform vec4 u_bbox_4326; // [minLng, minLat, maxLng, maxLat]
 
 in vec2 v_tex_coord ;
@@ -148,8 +150,10 @@ void main() {
     }
 
 	float normalized = clamp((h - u_min) / (u_max - u_min), 0.0, 1.0);
-    // グレースケールで出力
-    vec4 value_color = vec4(vec3(normalized), 1.0);
+   
+    vec3 color = mix(u_min_color, u_max_color, normalized);
+    
+    vec4 value_color = vec4(vec3(color), 1.0);
 
     fragColor = value_color; // グレースケールで出力
 

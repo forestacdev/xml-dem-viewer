@@ -10,6 +10,7 @@
         "deploy": "pnpm run build && gh-pages -d dist -m \"Updates --skip-ci\""
     },
     "devDependencies": {
+        "@tweakpane/core": "^2.0.5",
         "@types/three": "^0.177.0",
         "gh-pages": "^6.3.0",
         "prettier": "^3.5.3",
@@ -23,7 +24,8 @@
         "jszip": "^3.10.1",
         "maplibre-gl": "^5.6.0",
         "tailwindcss": "^4.1.8",
-        "three": "^0.177.0"
+        "three": "^0.177.0",
+        "tweakpane": "^4.0.5"
     },
     "packageManager": "pnpm@10.11.1+sha256.211e9990148495c9fc30b7e58396f7eeda83d9243eb75407ea4f8650fb161f7c"
 }
