@@ -12,7 +12,7 @@ const canvas = document.getElementById("three-canvas") as HTMLCanvasElement;
 const offscreenCanvas = canvas.transferControlToOffscreen();
 
 // WebWorkerを使用してオフスクリーンレンダリングを行う
-const threeCanvasWorker = new Worker(new URL("./three/threeCanvasWorker.ts", import.meta.url), {
+const threeCanvasWorker = new Worker(new URL("./three/worker.three-canvas.ts", import.meta.url), {
     type: "module",
 });
 
@@ -135,9 +135,12 @@ const downloadGeoTiffWithWorker = async (
         // データ検証
         if (dataType === "elevation") {
             // WebWorker作成
-            const worker = new Worker(new URL("./utils/geotiffWriterWorker.ts", import.meta.url), {
-                type: "module",
-            });
+            const worker = new Worker(
+                new URL("./utils/worker.geotiff-writer.ts", import.meta.url),
+                {
+                    type: "module",
+                },
+            );
 
             // WebWorkerからのメッセージハンドラー
             worker.onmessage = (e) => {
@@ -203,9 +206,12 @@ const downloadGeoTiffWithWorker = async (
             });
         } else {
             // Mapbox GL用のWebWorker作成
-            const worker = new Worker(new URL("./utils/terrainRgbWriter.ts", import.meta.url), {
-                type: "module",
-            });
+            const worker = new Worker(
+                new URL("./utils/worker.terrain-rgb-writer.ts", import.meta.url),
+                {
+                    type: "module",
+                },
+            );
 
             // WebWorkerからのメッセージハンドラー
             worker.onmessage = (e) => {

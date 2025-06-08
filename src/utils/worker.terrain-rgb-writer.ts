@@ -272,6 +272,7 @@ const createTerrainRGBGeoTiffBuffer_RGB = (
         `Creating Terrain RGB GeoTIFF (RGB-only): ${width}x${height}, ${imageDataSize} bytes`,
     );
 
+    // GeoTIFF用の追加データ
     const modelPixelScale = new Float64Array([
         Math.abs(geoTransform.pixelSizeX),
         Math.abs(geoTransform.pixelSizeY),
@@ -295,22 +296,34 @@ const createTerrainRGBGeoTiffBuffer_RGB = (
     const nodataString = "0 0 0";
     const bitsPerSampleArray = new Uint16Array([8, 8, 8]);
 
+    // アライメント調整用のヘルパー関数
     const alignTo = (value: number, alignment: number): number => {
         return Math.ceil(value / alignment) * alignment;
     };
 
+    // ★重要★ TIFFディレクトリ構造の正確な計算
     const tiffHeaderSize = 8;
-    const ifdEntryCount = 17; // RGB用のエントリ数（ExtraSamples不要）
-    const ifdSize = 2 + ifdEntryCount * 12 + 4;
+    const ifdEntryCount = 17; // RGB用のエントリ数
+    const ifdHeaderSize = 2; // エントリ数（2バイト）
+    const ifdEntriesSize = ifdEntryCount * 12; // 各エントリ12バイト
+    const ifdNextOffset = 4; // 次のIFDへのオフセット（4バイト）
+    const ifdTotalSize = ifdHeaderSize + ifdEntriesSize + ifdNextOffset;
 
-    let currentOffset = tiffHeaderSize + ifdSize;
+    console.log(
+        `IFD構造: ヘッダー=${ifdHeaderSize}, エントリ=${ifdEntriesSize}, 次オフセット=${ifdNextOffset}, 合計=${ifdTotalSize}`,
+    );
 
+    // オフセット計算（正確なアライメント）
+    let currentOffset = tiffHeaderSize + ifdTotalSize;
+
+    // 文字列データ（1バイトアライメント）
     const imageDescriptionOffset = currentOffset;
-    currentOffset += imageDescription.length + 1;
+    currentOffset += imageDescription.length + 1; // null終端含む
 
     const nodataStringOffset = currentOffset;
-    currentOffset += nodataString.length + 1;
+    currentOffset += nodataString.length + 1; // null終端含む
 
+    // Uint16Array用に2バイトアライメント
     currentOffset = alignTo(currentOffset, 2);
     const geoKeyDirectoryOffset = currentOffset;
     currentOffset += geoKeyDirectory.length * 2;
@@ -318,43 +331,58 @@ const createTerrainRGBGeoTiffBuffer_RGB = (
     const bitsPerSampleOffset = currentOffset;
     currentOffset += bitsPerSampleArray.length * 2;
 
+    // Float64Array用に8バイトアライメント
     currentOffset = alignTo(currentOffset, 8);
     const modelPixelScaleOffset = currentOffset;
-    currentOffset += 3 * 8;
+    currentOffset += 3 * 8; // 3個のFloat64
 
     const modelTiepointOffset = currentOffset;
-    currentOffset += 6 * 8;
+    currentOffset += 6 * 8; // 6個のFloat64
 
+    // 画像データ用に適切なアライメント
     currentOffset = alignTo(currentOffset, 4);
     const imageDataOffset = currentOffset;
     const totalSize = imageDataOffset + imageDataSize;
+
+    console.log(`オフセット詳細:`);
+    console.log(`- imageDescription: ${imageDescriptionOffset}`);
+    console.log(`- nodataString: ${nodataStringOffset}`);
+    console.log(`- geoKeyDirectory: ${geoKeyDirectoryOffset}`);
+    console.log(`- bitsPerSample: ${bitsPerSampleOffset}`);
+    console.log(`- modelPixelScale: ${modelPixelScaleOffset}`);
+    console.log(`- modelTiepoint: ${modelTiepointOffset}`);
+    console.log(`- imageData: ${imageDataOffset}`);
+    console.log(`- totalSize: ${totalSize}`);
 
     const buffer = new ArrayBuffer(totalSize);
     const view = new DataView(buffer);
 
     let offset = 0;
 
-    // TIFFヘッダー
-    view.setUint16(offset, 0x4949, true);
+    // === TIFFヘッダー ===
+    view.setUint16(offset, 0x4949, true); // "II" - Little endian
     offset += 2;
-    view.setUint16(offset, 42, true);
+    view.setUint16(offset, 42, true); // TIFF magic number
     offset += 2;
-    view.setUint32(offset, 8, true);
+    view.setUint32(offset, 8, true); // Offset to first IFD
     offset += 4;
 
-    // IFD
-    view.setUint16(offset, ifdEntryCount, true);
+    console.log(`TIFFヘッダー完了: offset=${offset}`);
+
+    // === IFD (Image File Directory) ===
+    const ifdStartOffset = offset;
+    view.setUint16(offset, ifdEntryCount, true); // Number of directory entries
     offset += 2;
 
     const writeIFDEntry = (tag: number, type: number, count: number, value: number) => {
-        view.setUint16(offset, tag, true);
-        view.setUint16(offset + 2, type, true);
-        view.setUint32(offset + 4, count, true);
-        view.setUint32(offset + 8, value, true);
+        view.setUint16(offset, tag, true); // Tag
+        view.setUint16(offset + 2, type, true); // Type
+        view.setUint32(offset + 4, count, true); // Count
+        view.setUint32(offset + 8, value, true); // Value/Offset
         offset += 12;
     };
 
-    // 基本的なTIFFタグ（RGB専用）
+    // 基本的なTIFFタグ（タグ番号順にソート）
     writeIFDEntry(256, 4, 1, width); // ImageWidth
     writeIFDEntry(257, 4, 1, height); // ImageLength
     writeIFDEntry(258, 3, 3, bitsPerSampleOffset); // BitsPerSample (8,8,8)
@@ -365,8 +393,8 @@ const createTerrainRGBGeoTiffBuffer_RGB = (
     writeIFDEntry(277, 3, 1, samplesPerPixel); // SamplesPerPixel (3 for RGB)
     writeIFDEntry(278, 4, 1, height); // RowsPerStrip
     writeIFDEntry(279, 4, 1, imageDataSize); // StripByteCounts
-    writeIFDEntry(282, 5, 1, 0); // XResolution
-    writeIFDEntry(283, 5, 1, 0); // YResolution
+    writeIFDEntry(282, 5, 1, 0); // XResolution (dummy)
+    writeIFDEntry(283, 5, 1, 0); // YResolution (dummy)
     writeIFDEntry(284, 3, 1, 1); // PlanarConfiguration (chunky)
     writeIFDEntry(296, 3, 1, 2); // ResolutionUnit
 
@@ -376,36 +404,62 @@ const createTerrainRGBGeoTiffBuffer_RGB = (
     writeIFDEntry(34735, 3, geoKeyDirectory.length, geoKeyDirectoryOffset); // GeoKeyDirectoryTag
     writeIFDEntry(42113, 2, nodataString.length + 1, nodataStringOffset); // GDAL_NODATA
 
+    // ★重要★ Next IFD offset（0 = 最後のIFD）
     view.setUint32(offset, 0, true);
+    offset += 4;
 
-    // データ書き込み
-    const geoKeyView = new Uint16Array(buffer, geoKeyDirectoryOffset, geoKeyDirectory.length);
-    geoKeyView.set(geoKeyDirectory);
+    console.log(
+        `IFD完了: 開始=${ifdStartOffset}, 終了=${offset}, サイズ=${offset - ifdStartOffset}`,
+    );
 
+    // === データセクションの書き込み ===
+
+    // ImageDescription
     const imageDescBytes = new TextEncoder().encode(imageDescription + "\0");
     const imageDescView = new Uint8Array(buffer, imageDescriptionOffset, imageDescBytes.length);
     imageDescView.set(imageDescBytes);
+    console.log(
+        `ImageDescription書き込み完了: ${imageDescriptionOffset} (${imageDescBytes.length}バイト)`,
+    );
 
+    // NODATA文字列
     const nodataBytes = new TextEncoder().encode(nodataString + "\0");
     const nodataView = new Uint8Array(buffer, nodataStringOffset, nodataBytes.length);
     nodataView.set(nodataBytes);
+    console.log(`NoData文字列書き込み完了: ${nodataStringOffset} (${nodataBytes.length}バイト)`);
 
+    // GeoKeyDirectory
+    const geoKeyView = new Uint16Array(buffer, geoKeyDirectoryOffset, geoKeyDirectory.length);
+    geoKeyView.set(geoKeyDirectory);
+    console.log(
+        `GeoKeyDirectory書き込み完了: ${geoKeyDirectoryOffset} (${geoKeyDirectory.length * 2}バイト)`,
+    );
+
+    // BitsPerSample配列
     const bitsPerSampleView = new Uint16Array(
         buffer,
         bitsPerSampleOffset,
         bitsPerSampleArray.length,
     );
     bitsPerSampleView.set(bitsPerSampleArray);
+    console.log(
+        `BitsPerSample書き込み完了: ${bitsPerSampleOffset} (${bitsPerSampleArray.length * 2}バイト)`,
+    );
 
+    // ModelPixelScale
     for (let i = 0; i < 3; i++) {
         view.setFloat64(modelPixelScaleOffset + i * 8, modelPixelScale[i], true);
     }
+    console.log(`ModelPixelScale書き込み完了: ${modelPixelScaleOffset} (${3 * 8}バイト)`);
 
+    // ModelTiepoint
     for (let i = 0; i < 6; i++) {
         view.setFloat64(modelTiepointOffset + i * 8, modelTiepoint[i], true);
     }
+    console.log(`ModelTiepoint書き込み完了: ${modelTiepointOffset} (${6 * 8}バイト)`);
 
-    // RGB画像データ（無効値は黒で表現）
+    // === RGB画像データ ===
+    console.log(`画像データ書き込み開始: ${imageDataOffset}`);
     let dataOffset = imageDataOffset;
     let validPixels = 0;
     let invalidPixels = 0;
@@ -441,7 +495,24 @@ const createTerrainRGBGeoTiffBuffer_RGB = (
         }
     }
 
-    console.log(`RGB版 変換完了: 有効=${validPixels}, 無効=${invalidPixels}`);
+    console.log(`画像データ書き込み完了:`);
+    console.log(`- 有効ピクセル: ${validPixels}`);
+    console.log(`- 無効ピクセル: ${invalidPixels}`);
+    console.log(`- 実際の画像データサイズ: ${dataOffset - imageDataOffset} バイト`);
+    console.log(`- 予想サイズ: ${imageDataSize} バイト`);
+
+    // ファイルサイズの検証
+    if (dataOffset - imageDataOffset !== imageDataSize) {
+        console.error(
+            `画像データサイズの不整合: 実際=${dataOffset - imageDataOffset}, 予想=${imageDataSize}`,
+        );
+    }
+
+    if (dataOffset > totalSize) {
+        console.error(`バッファオーバーフロー: 実際=${dataOffset}, バッファサイズ=${totalSize}`);
+    }
+
+    console.log(`RGB版 TiffBuffer作成完了: ${totalSize} バイト`);
     return buffer;
 };
 

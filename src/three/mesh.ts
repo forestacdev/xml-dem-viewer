@@ -1,4 +1,4 @@
-import { uniforms } from "./threeCanvasWorker";
+import { uniforms } from "./worker.three-canvas";
 
 import fragmentShader from "./shaders/fragment.glsl?raw";
 import vertexShader from "./shaders/vertex.glsl?raw";

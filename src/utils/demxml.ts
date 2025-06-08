@@ -1,5 +1,5 @@
-import JSZip from 'jszip';
-import type { ParseXmlTask, ParseXmlResult } from './xmlParseWorker';
+import JSZip from "jszip";
+import type { ParseXmlTask, ParseXmlResult } from "./worker.xml-parser";
 
 // 型定義
 interface LowerCorner {
@@ -64,8 +64,8 @@ export class ParallelXmlParser {
     constructor() {
         // 4つのWorkerを初期化
         for (let i = 0; i < this.maxWorkers; i++) {
-            const worker = new Worker(new URL('./xmlParseWorker.ts', import.meta.url), {
-                type: 'module',
+            const worker = new Worker(new URL("./worker.xml-parser.ts", import.meta.url), {
+                type: "module",
             });
             this.workers.push(worker);
         }
@@ -112,7 +112,7 @@ export class ParallelXmlParser {
                     // 全タスク完了チェック
                     if (completedTasks === xmlTexts.length) {
                         if (errors.length > 0) {
-                            reject(new Error(`XML parsing errors: ${errors.join(', ')}`));
+                            reject(new Error(`XML parsing errors: ${errors.join(", ")}`));
                         } else {
                             resolve(results);
                         }
@@ -141,7 +141,7 @@ export class ParallelXmlParser {
 export class DemInputXmlException extends Error {
     constructor(message: string) {
         super(message);
-        this.name = 'DemInputXmlException';
+        this.name = "DemInputXmlException";
     }
 }
 
@@ -176,7 +176,9 @@ export class Dem {
             // メッシュコードでソート（地理的順序を保証）
             this.allContentList.sort((a, b) => a.mesh_code - b.mesh_code);
 
-            console.log(`Parallel XML parsing completed: ${this.allContentList.length} files processed`);
+            console.log(
+                `Parallel XML parsing completed: ${this.allContentList.length} files processed`,
+            );
 
             this.getMetadataList();
             this.storeNpArrayList();
@@ -204,7 +206,7 @@ export class Dem {
         }
 
         if (thirdMeshCodes.length > 0 && secondMeshCodes.length > 0) {
-            throw new DemInputXmlException('Mixed mesh format (2nd mesh and 3rd mesh)');
+            throw new DemInputXmlException("Mixed mesh format (2nd mesh and 3rd mesh)");
         }
     }
 
@@ -291,17 +293,21 @@ export class Dem {
 }
 
 // ブラウザ用：ZIPファイルからDEMオブジェクトを作成
-export const createDemFromZipUpload = async (input: File | File[], seaAtZero: boolean = false, onProgress?: (current: number, total: number, fileName: string) => void): Promise<Dem> => {
+export const createDemFromZipUpload = async (
+    input: File | File[],
+    seaAtZero: boolean = false,
+    onProgress?: (current: number, total: number, fileName: string) => void,
+): Promise<Dem> => {
     try {
         const xmlFiles: string[] = [];
         const xmlFileNames: string[] = [];
 
         if (Array.isArray(input)) {
             // 複数ファイル（フォルダドロップ）の場合
-            const xmlInputFiles = input.filter((file) => file.name.toLowerCase().endsWith('.xml'));
+            const xmlInputFiles = input.filter((file) => file.name.toLowerCase().endsWith(".xml"));
 
             if (xmlInputFiles.length === 0) {
-                throw new DemInputXmlException('No XML files found in the selected files.');
+                throw new DemInputXmlException("No XML files found in the selected files.");
             }
 
             // 各XMLファイルを読み込み
@@ -323,7 +329,7 @@ export const createDemFromZipUpload = async (input: File | File[], seaAtZero: bo
             }
         } else {
             // 単一ファイルの場合
-            if (input.name.toLowerCase().endsWith('.xml')) {
+            if (input.name.toLowerCase().endsWith(".xml")) {
                 // 単一XMLファイル
                 try {
                     const xmlContent = await input.text();
@@ -338,13 +344,13 @@ export const createDemFromZipUpload = async (input: File | File[], seaAtZero: bo
 
                 // ZIPファイル内のXMLファイルを取得
                 zip.forEach((relativePath, file) => {
-                    if (!file.dir && relativePath.toLowerCase().endsWith('.xml')) {
+                    if (!file.dir && relativePath.toLowerCase().endsWith(".xml")) {
                         xmlFileNames.push(relativePath);
                     }
                 });
 
                 if (xmlFileNames.length === 0) {
-                    throw new DemInputXmlException('No XML files found in the ZIP file.');
+                    throw new DemInputXmlException("No XML files found in the ZIP file.");
                 }
 
                 // 各XMLファイルを読み込み
@@ -357,12 +363,14 @@ export const createDemFromZipUpload = async (input: File | File[], seaAtZero: bo
                     }
 
                     try {
-                        const xmlContent = await zip.file(fileName)?.async('string');
+                        const xmlContent = await zip.file(fileName)?.async("string");
                         if (xmlContent) {
                             xmlFiles.push(xmlContent);
                         }
                     } catch (error) {
-                        throw new DemInputXmlException(`Failed to read XML file from ZIP: ${fileName}`);
+                        throw new DemInputXmlException(
+                            `Failed to read XML file from ZIP: ${fileName}`,
+                        );
                     }
                 }
             }
@@ -377,6 +385,6 @@ export const createDemFromZipUpload = async (input: File | File[], seaAtZero: bo
         if (error instanceof DemInputXmlException) {
             throw error;
         }
-        throw new DemInputXmlException('Failed to process input files.');
+        throw new DemInputXmlException("Failed to process input files.");
     }
 };
