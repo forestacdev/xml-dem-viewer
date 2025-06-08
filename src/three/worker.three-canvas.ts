@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-import type { ImageSize, GeoTransform } from "../utils/geotiff";
+import type { ImageSize, GeoTransform, Statistics } from "../utils/geotiff";
 import { generateDemMesh } from "./mesh";
 import { createDummyDomElement } from "../utils";
 
@@ -45,7 +45,7 @@ self.onmessage = (event) => {
             init(event);
             break;
         case "addMesh":
-            addMesh(event.data.demArray, event.data.geoTransform, event.data.imageSize);
+            addMesh(event.data.demArray, event.data.geoTransform, event.data.statistics);
             break;
         case "resize":
             resize(event.data.width, event.data.height, event.data.devicePixelRatio);
@@ -163,7 +163,7 @@ const handleWheelEvent = (eventData: any) => {
     });
 };
 
-const addMesh = (demArray: number[][], geoTransform: GeoTransform, imageSize: ImageSize) => {
+const addMesh = (demArray: number[][], geoTransform: GeoTransform, statistics: Statistics) => {
     // 既存のメッシュをクリア
     const existingMesh = scene.getObjectByName("demMesh");
     if (existingMesh) {
@@ -172,7 +172,9 @@ const addMesh = (demArray: number[][], geoTransform: GeoTransform, imageSize: Im
         ((existingMesh as THREE.Mesh).material as THREE.Material).dispose();
     }
 
-    const demMesh = generateDemMesh(demArray, geoTransform, imageSize);
+    const imageSize = statistics.imageSize;
+
+    const demMesh = generateDemMesh(demArray, geoTransform, statistics);
 
     scene.add(demMesh);
 

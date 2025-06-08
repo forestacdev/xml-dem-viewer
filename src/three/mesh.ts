@@ -2,12 +2,11 @@ import { uniforms } from "./worker.three-canvas.ts";
 
 import fragmentShader from "./shaders/fragment.glsl?raw";
 import vertexShader from "./shaders/vertex.glsl?raw";
-import type { ImageSize, GeoTransform } from "../utils/geotiff";
+import type { Statistics, GeoTransform } from "../utils/geotiff";
 import * as THREE from "three";
 
 export const demMaterial = new THREE.ShaderMaterial({
     uniforms,
-    // 頂点シェーダー
     vertexShader,
     fragmentShader,
     transparent: true,
@@ -17,44 +16,66 @@ export const demMaterial = new THREE.ShaderMaterial({
 export const generateDemMesh = (
     demArray: number[][],
     geoTransform: GeoTransform,
-    imageSize: ImageSize,
+    statistics: Statistics,
 ): THREE.Mesh => {
     // DEMデータのサイズを取得
     const height = demArray.length;
     const width = demArray[0]?.length || 0;
+
+    const bbox = [
+        statistics.bounds.lower_left.lon, // minX (west)
+        statistics.bounds.lower_left.lat, // minY (south)
+        statistics.bounds.upper_right.lon, // maxX (east)
+        statistics.bounds.upper_right.lat, // maxY (north)
+    ] as [number, number, number, number];
 
     if (width === 0 || height === 0) {
         console.error("Invalid DEM data dimensions");
         return new THREE.Mesh(); // 空のメッシュを返す
     }
 
-    // ピクセル解像度（スケール調整）
-    const dx = imageSize.x / width;
-    const dy = imageSize.y / height;
-    // geoTransformのピクセルサイズを使ってelevationScaleを計算
-    let elevationScale = 0.25; // デフォルト値
+    // bboxから中心座標を計算
+    const centerLon = (bbox[0] + bbox[2]) / 2; // (west + east) / 2
+    const centerLat = (bbox[1] + bbox[3]) / 2; // (south + north) / 2
+    const centerLatRad = (centerLat * Math.PI) / 180;
+
+    // 地理座標系からメートル座標系への変換
+    let pixelSizeMetersX: number;
+    let pixelSizeMetersY: number;
+    let elevationScale: number;
 
     if (geoTransform) {
         const pixelSizeX = Math.abs(geoTransform.pixelSizeX); // 度単位
         const pixelSizeY = Math.abs(geoTransform.pixelSizeY); // 度単位
 
-        // 度をメートルに変換（緯度35度付近）
-        const metersPerDegree = 111000; // 約111km/度
-        const pixelSizeMetersX = pixelSizeX * metersPerDegree; // 約6.2m
-        const pixelSizeMetersY = pixelSizeY * metersPerDegree; // 約6.2m
+        // 緯度による経度の実距離補正
+        const metersPerDegreeLat = 111132.954; // 緯度1度の距離（メートル）
+        const metersPerDegreeLon = 111132.954 * Math.cos(centerLatRad); // 経度1度の距離（緯度で補正）
 
-        // Three.js空間でのピクセルあたりの距離
-        const meshPixelSizeX = dx; // Three.js空間でのX方向ピクセルサイズ
-        const meshPixelSizeY = dy; // Three.js空間でのY方向ピクセルサイズ
+        pixelSizeMetersX = pixelSizeX * metersPerDegreeLon;
+        pixelSizeMetersY = pixelSizeY * metersPerDegreeLat;
 
-        // 実距離とメッシュ距離の比率
-        const scaleX = meshPixelSizeX / pixelSizeMetersX;
-        const scaleY = meshPixelSizeY / pixelSizeMetersY;
-        const averageScale = (scaleX + scaleY) / 2;
+        // Three.js空間での適切なスケール設定
+        const meshScale = 1000; // 1km = 1000 Three.js単位として設定
+        elevationScale = 1 / meshScale; // 標高もスケール調整
+    } else {
+        // geoTransformがない場合のデフォルト値
+        // bboxから推定されるピクセルサイズを計算
+        const lonRange = bbox[2] - bbox[0]; // 経度範囲
+        const latRange = bbox[3] - bbox[1]; // 緯度範囲
 
-        // 標高も同じスケールを適用
-        elevationScale = averageScale;
+        const metersPerDegreeLat = 111132.954;
+        const metersPerDegreeLon = 111132.954 * Math.cos(centerLatRad);
+
+        pixelSizeMetersX = (lonRange * metersPerDegreeLon) / width;
+        pixelSizeMetersY = (latRange * metersPerDegreeLat) / height;
+        elevationScale = 0.001; // 1m = 0.001 Three.js単位
     }
+
+    // Three.js空間でのピクセルサイズ（メートル単位をThree.js単位に変換）
+    const meshScale = 1000; // 1km = 1000 Three.js単位
+    const dx = pixelSizeMetersX / meshScale;
+    const dy = pixelSizeMetersY / meshScale;
 
     // BufferGeometry作成
     const geometry = new THREE.BufferGeometry();

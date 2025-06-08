@@ -303,7 +303,7 @@ const processFile = async (input: File | File[]) => {
             console.log(`⚡ Processing completed in ${(endTime - startTime).toFixed(2)}ms`);
 
             const geotiffData = await createGeoTiffFromDem(dem);
-            const { geoTransform, demArray, imageSize } = geotiffData;
+            const { geoTransform, demArray, statistics } = geotiffData;
 
             loaded();
 
@@ -313,7 +313,7 @@ const processFile = async (input: File | File[]) => {
                 type: "addMesh",
                 demArray: demArray,
                 geoTransform: geoTransform,
-                imageSize: imageSize,
+                statistics: statistics,
             });
 
             const exportButton = document.getElementById("export-button") as HTMLButtonElement;
