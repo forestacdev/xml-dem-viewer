@@ -1,4 +1,4 @@
-import { uniforms } from "./worker.three-canvas";
+import { uniforms } from "./worker.three-canvas.ts";
 
 import fragmentShader from "./shaders/fragment.glsl?raw";
 import vertexShader from "./shaders/vertex.glsl?raw";
@@ -53,15 +53,6 @@ export const generateDemMesh = (
 
         // 標高も同じスケールを適用
         elevationScale = averageScale;
-
-        console.log(
-            `📏 実ピクセルサイズ: ${pixelSizeMetersX.toFixed(2)}m × ${pixelSizeMetersY.toFixed(2)}m`,
-        );
-        console.log(
-            `📏 メッシュピクセルサイズ: ${meshPixelSizeX.toFixed(4)} × ${meshPixelSizeY.toFixed(4)}`,
-        );
-        console.log(`📏 スケール比率: ${averageScale.toFixed(6)}`);
-        console.log(`📏 elevationScale: ${elevationScale.toFixed(6)}`);
     }
 
     // BufferGeometry作成

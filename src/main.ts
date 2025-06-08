@@ -4,8 +4,7 @@ import { createDemFromZipUpload } from "./utils/demxml";
 import { createGeoTiffFromDem } from "./utils/geotiff";
 
 import type { GeoTransform } from "./utils/geotiff";
-
-import { mapLibreMap, addMapLayerFromDem, toggleMapView } from "./map";
+import { addMapLayerFromDem, toggleMapView } from "./map";
 
 // キャンバス
 const canvas = document.getElementById("three-canvas") as HTMLCanvasElement;
@@ -164,17 +163,16 @@ const downloadGeoTiffWithWorker = async (
                             URL.revokeObjectURL(url);
                             worker.terminate();
 
-                            console.log("✅ WebWorker TIFF creation completed successfully");
                             resolve(true);
                         } catch (downloadError) {
-                            console.error("❌ Download error:", downloadError);
+                            console.error("Download error:", downloadError);
                             worker.terminate();
                             reject(downloadError);
                         }
                         break;
 
                     case "error":
-                        console.error("❌ WebWorker error:", error);
+                        console.error("WebWorker error:", error);
                         console.error("Stack:", stack);
                         worker.terminate();
 
@@ -194,7 +192,7 @@ const downloadGeoTiffWithWorker = async (
 
             // WebWorkerエラーハンドラー
             worker.onerror = (error) => {
-                console.error("❌ WebWorker error:", error);
+                console.error("WebWorker error:", error);
                 worker.terminate();
                 reject(error);
             };
@@ -235,19 +233,17 @@ const downloadGeoTiffWithWorker = async (
                             URL.revokeObjectURL(url);
                             worker.terminate();
 
-                            console.log(
-                                "✅ Mapbox GL WebWorker TIFF creation completed successfully",
-                            );
+                            console.log("Mapbox GL WebWorker TIFF creation completed successfully");
                             resolve(true);
                         } catch (downloadError) {
-                            console.error("❌ Download error:", downloadError);
+                            console.error(" Download error:", downloadError);
                             worker.terminate();
                             reject(downloadError);
                         }
                         break;
 
                     case "error":
-                        console.error("❌ Mapbox GL WebWorker error:", error);
+                        console.error("Mapbox GL WebWorker error:", error);
                         console.error("Stack:", stack);
                         worker.terminate();
                         alert(`Mapbox GL WebWorkerでのTIFF作成中にエラーが発生しました: ${error}`);
@@ -258,7 +254,7 @@ const downloadGeoTiffWithWorker = async (
 
             // WebWorkerエラーハンドラー
             worker.onerror = (error) => {
-                console.error("❌ Mapbox GL WebWorker error:", error);
+                console.error("Mapbox GL WebWorker error:", error);
                 worker.terminate();
                 reject(error);
             };
@@ -332,9 +328,11 @@ const processFile = async (input: File | File[]) => {
                 imageSize: imageSize,
             });
         } catch (error) {
-            console.error("Error creating DEM:", error);
-            console.error("Error details:", error.message || error);
-            alert(`ファイルの処理中にエラーが発生しました: ${error.message || error}`);
+            if (error instanceof Error) {
+                console.error("Error creating DEM:", error);
+                console.error("Error details:", error.message || error);
+                alert(`ファイルの処理中にエラーが発生しました: ${error.message || error}`);
+            }
         }
     } else {
         alert("ZIPファイル、XMLファイル、またはXMLファイルを含むフォルダをドロップしてください");
@@ -406,14 +404,12 @@ const sampleDem5aBtn = document.getElementById("sample-dem5a") as HTMLButtonElem
 if (sampleDem5aBtn) {
     sampleDem5aBtn.addEventListener("click", async () => {
         try {
-            console.log("Fetching sample DEM file...");
             const response = await fetch("./sample/FG-GML-543745-DEM5A-20250214.zip");
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            console.log("Sample DEM file fetched successfully");
             const arrayBuffer = await response.arrayBuffer();
 
             // ArrayBufferからBlobを作成（正しいMIMEタイプを指定）
