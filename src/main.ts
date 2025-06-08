@@ -355,11 +355,15 @@ const processFile = async (input: File | File[]) => {
             if (error instanceof Error) {
                 console.error("Error creating DEM:", error);
                 console.error("Error details:", error.message || error);
-                alert(`ファイルの処理中にエラーが発生しました: ${error.message || error}`);
+                alert(
+                    `ファイルの処理中にエラーが発生しました。対応していないファイルです。: ${error.message || error}`,
+                );
+                await loadingEnd();
             }
         }
     } else {
         alert("ZIPファイル、XMLファイル、またはXMLファイルを含むフォルダをドロップしてください");
+        await loadingEnd();
     }
 };
 const dropZone = document.getElementById("drop-zone");
