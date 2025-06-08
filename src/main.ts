@@ -135,7 +135,7 @@ const downloadGeoTiffWithWorker = async (
         if (dataType === "single") {
             // WebWorker作成
             const worker = new Worker(
-                new URL("./utils/worker.geotiff-writer.ts", import.meta.url),
+                new URL("./writer/worker.geotiff-writer.ts", import.meta.url),
                 {
                     type: "module",
                 },
@@ -205,7 +205,7 @@ const downloadGeoTiffWithWorker = async (
         } else {
             // Mapbox GL用のWebWorker作成
             const worker = new Worker(
-                new URL("./utils/worker.terrain-rgb-writer.ts", import.meta.url),
+                new URL("./writer/worker.terrain-rgb-writer.ts", import.meta.url),
                 {
                     type: "module",
                 },
