@@ -125,14 +125,14 @@ const downloadGeoTiffWithWorker = async (
     demArray: number[][],
     geoTransform: GeoTransform,
     filename: string,
-    dataType: "elevation" | "mapbox" = "elevation",
+    dataType: "single" | "mapbox" = "single",
 ): Promise<boolean> => {
     return new Promise((resolve, reject) => {
         console.log("Starting WebWorker TIFF creation...");
         console.log(`Dimensions: ${demArray[0]?.length} × ${demArray.length}`);
 
         // データ検証
-        if (dataType === "elevation") {
+        if (dataType === "single") {
             // WebWorker作成
             const worker = new Worker(
                 new URL("./utils/worker.geotiff-writer.ts", import.meta.url),
