@@ -6,6 +6,7 @@ uniform vec2 u_resolution;
 uniform float u_dem_type; // 0: mapbox, 1: gsi, 2: terrarium
 uniform float u_min;
 uniform float u_max;
+uniform vec4 u_bbox_4326; // [minLng, minLat, maxLng, maxLat]
 
 in vec2 v_tex_coord ;
 out vec4 fragColor;
@@ -69,7 +70,7 @@ vec3 encodeHeight(float height) {
         if (total < 0.0) {
             total += 16777216.0; // 2^24
         }
-        
+
         float r = floor(total / 65536.0);
         float g = floor(mod(total, 65536.0) / 256.0);
         float b = mod(total, 256.0);
@@ -123,7 +124,22 @@ vec3 calculateLighting(vec3 normal) {
 
 void main() {
     vec2 uv = v_tex_coord;
-	float h = texture(u_texArray, uv).r;
+
+    // 表示側（メルカトル）Y
+    float maxY = latToY(u_bbox_4326.w);
+    float minY = latToY(u_bbox_4326.y);
+    float y = mix(maxY, minY, uv.y); // メルカトルY座標
+
+    // 表示側（メルカトル）X → 経度
+    float lng = mix(u_bbox_4326.x, u_bbox_4326.z, uv.x);
+    float lat = yToLat(y);
+
+    // 緯度・経度 → UVに再マッピング
+    float u = (lng - u_bbox_4326.x) / (u_bbox_4326.z - u_bbox_4326.x);
+    float v = (u_bbox_4326.w - lat) / (u_bbox_4326.w - u_bbox_4326.y);
+
+    vec2 src_uv = vec2(u, v);
+	float h = texture(u_texArray, src_uv).r;
 
     if(h == -9999.0) {
         // -9999 の場合は透明にする
