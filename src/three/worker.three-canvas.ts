@@ -22,7 +22,8 @@ type MessageType =
     | "mouseEvent"
     | "wheelEvent"
     | "toggleView"
-    | "updateUniforms";
+    | "updateUniforms"
+    | "clear";
 
 type MouseEventType = "mousedown" | "mousemove" | "mouseup" | "wheel";
 
@@ -71,6 +72,8 @@ self.onmessage = (event) => {
         case "updateUniforms":
             applyUniforms(event);
             break;
+        case "clear":
+            removeMesh();
         default:
             console.error(`Unknown message type: ${event.data.type}`);
             break;
@@ -213,6 +216,16 @@ const addMesh = (demArray: number[][], geoTransform: GeoTransform, statistics: S
     camera.position.set(imageSize.x * 0.5, imageSize.y * 0.5, Math.max(imageSize.x, imageSize.y));
     orbitControls.target.set(0, 0, 0);
     orbitControls.update();
+};
+
+const removeMesh = () => {
+    // 既存のメッシュをクリア
+    const existingMesh = scene.getObjectByName("demMesh");
+    if (existingMesh) {
+        scene.remove(existingMesh);
+        (existingMesh as THREE.Mesh).geometry.dispose();
+        ((existingMesh as THREE.Mesh).material as THREE.Material).dispose();
+    }
 };
 
 const resize = (width: number, height: number, devicePixelRatio: number) => {

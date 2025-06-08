@@ -5,7 +5,7 @@ import { createGeoTiffFromDem } from "./utils/geotiff";
 import { loadingEnd, loadingStart } from "./utils/loading";
 
 import type { GeoTransform } from "./utils/geotiff";
-import { addMapLayerFromDem, toggleMapView } from "./map";
+import { addMapLayerFromDem, toggleMapView, removeMapLayer } from "./map";
 
 import { uniforms } from "./three/uniforms";
 
@@ -430,6 +430,28 @@ document.addEventListener("DOMContentLoaded", () => {
     initializeDragAndDrop();
 });
 
+const deleteButton = document.getElementById("delete-button") as HTMLButtonElement;
+if (deleteButton) {
+    deleteButton.addEventListener("click", async () => {
+        // キャンバスをクリア
+        threeCanvasWorker.postMessage({ type: "clear" });
+
+        removeMapLayer();
+
+        // ドロップゾーンを再表示
+        if (dropZone) dropZone.style.display = "grid";
+
+        // パネルを非表示
+        const pane = document.getElementById("pane");
+        if (pane) {
+            pane.style.display = "none";
+        }
+
+        await loadingEnd();
+    });
+}
+
+// エクスポート
 const sampleDem10bBtn = document.getElementById("sample-dem10b") as HTMLButtonElement;
 if (sampleDem10bBtn) {
     sampleDem10bBtn.addEventListener("click", async () => {
@@ -466,6 +488,7 @@ const toggleViewButton = document.getElementById("toggle-view-button");
 
 let isViewMpde: "map" | "3d" = "map"; // 初期状態は3Dビュー
 
+// 切り替え
 if (toggleViewButton) {
     toggleViewButton.addEventListener("click", () => {
         toggleViewButton.classList.toggle("c-mode-map");

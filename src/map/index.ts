@@ -155,6 +155,19 @@ export const addMapLayerFromDem = async (geotiffData: GeoTiffData) => {
     });
 };
 
+export const removeMapLayer = () => {
+    if (!mapLibreMap) {
+        console.error("MapLibre map instance is not initialized.");
+        return;
+    }
+    if (mapLibreMap.getLayer("canvas-layer")) {
+        mapLibreMap.removeLayer("canvas-layer");
+    }
+    if (mapLibreMap.getSource("canvas-source")) {
+        mapLibreMap.removeSource("canvas-source");
+    }
+};
+
 export const toggleMapView = (isVisible: boolean) => {
     const mapContainer = document.getElementById("map");
     if (!mapContainer) {
