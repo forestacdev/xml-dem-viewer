@@ -50,21 +50,6 @@
     display: block;
 }
 
-#status-message {
-    font-family: monospace;
-    font-size: 12px;
-    z-index: 1000;
-    pointer-events: none;
-}
-
-#status-message:empty {
-    display: none !important;
-}
-
-#status-message:not(:empty) {
-    display: block !important;
-}
-
 #toggle-view-button.c-mode-3d > .c-switch {
     translate: 75% 0%;
 }

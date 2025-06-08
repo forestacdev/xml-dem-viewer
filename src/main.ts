@@ -1,6 +1,6 @@
 import "./style.css";
 
-import { createDemFromZipUpload } from "./utils/demxml";
+import { createDemFromUpload } from "./utils/demxml";
 import { createGeoTiffFromDem } from "./utils/geotiff";
 
 import type { GeoTransform } from "./utils/geotiff";
@@ -292,26 +292,13 @@ const processFile = async (input: File | File[]) => {
             // プログレスコールバックを定義
             const progressCallback = (current: number, total: number, fileName: string) => {
                 console.log(`📄 Processing XML file ${current}/${total}: ${fileName}`);
-
-                // UIに進捗を表示
-                const progressPercent = Math.round((current / total) * 100);
-                const statusElement = document.getElementById("status-message");
-                if (statusElement) {
-                    statusElement.textContent = `Processing XML files... ${progressPercent}% (${current}/${total})`;
-                }
             };
 
             // プログレスコールバックを渡してDEM作成
-            const dem = await createDemFromZipUpload(input, false, progressCallback);
+            const dem = await createDemFromUpload(input, false, progressCallback);
 
             const endTime = performance.now();
             console.log(`⚡ Processing completed in ${(endTime - startTime).toFixed(2)}ms`);
-
-            // ステータスメッセージをクリア
-            const statusElement = document.getElementById("status-message");
-            if (statusElement) {
-                statusElement.textContent = "";
-            }
 
             const geotiffData = await createGeoTiffFromDem(dem);
             const { geoTransform, demArray, imageSize } = geotiffData;
@@ -320,15 +307,30 @@ const processFile = async (input: File | File[]) => {
 
             await addMapLayerFromDem(geotiffData);
 
-            // GeoTIFFダウンロード
-            // await downloadGeoTiffWithWorker(demArray, geoTransform, "dem.tiff", "elevation");
-
             threeCanvasWorker.postMessage({
                 type: "addMesh",
                 demArray: demArray,
                 geoTransform: geoTransform,
                 imageSize: imageSize,
             });
+
+            const exportButton = document.getElementById("export-button") as HTMLButtonElement;
+            if (exportButton) {
+                exportButton.addEventListener("click", async () => {
+                    // GeoTIFFダウンロード
+                    await downloadGeoTiffWithWorker(
+                        demArray,
+                        geoTransform,
+                        `dem.tiff`, // ダウンロードするファイル名
+                        "single", // または "mapbox" を指定
+                    ).catch((error) => {
+                        console.error("Error downloading GeoTIFF:", error);
+                        alert(
+                            `GeoTIFFのダウンロード中にエラーが発生しました: ${error.message || error}`,
+                        );
+                    });
+                });
+            }
         } catch (error) {
             if (error instanceof Error) {
                 console.error("Error creating DEM:", error);

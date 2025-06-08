@@ -107,10 +107,6 @@ const init = (event: Props) => {
     orbitControls.enableDamping = true;
     orbitControls.enablePan = false;
 
-    const grid = new THREE.GridHelper(1000, 100, 0x0000ff, 0x808080);
-    grid.name = "grid";
-    scene.add(grid);
-
     resize(width, height, devicePixelRatio);
 
     // 毎フレーム時に実行されるループイベントです

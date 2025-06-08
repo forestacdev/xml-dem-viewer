@@ -22,10 +22,7 @@
                     <span>ZIPまたはXMLファイルを選択</span>
                     <input type="file" id="fileInput" accept=".zip,.xml" class="hidden" />
                 </label>
-                <label for="fileInput" class="btn-primary">
-                    <span>またはXMLを含むフォルダを選択</span>
-                    <input type="file" id="fileInput" class="hidden" webkitdirectory />
-                </label>
+
                 <button id="sample-dem10b" class="btn-primary">
                     <span>サンプルデータを読み込む</span>
                 </button>
@@ -55,20 +52,15 @@
                 <span class="p-2 px-4 c-map z-10 transition-colors">地図</span>
                 <span class="p-2 px-4 c-3d z-10 transition-colors"> 3D </span>
             </button>
+            <button
+                id="export-button"
+                class="absolute bottom-12 right-4 rounded-full flex overflow-hidden cursor-pointer justify-between items-center border-2 border-black bg-white pointer-events-auto"
+            >
+                <span class="p-2 px-4 c-map z-10 transition-colors"
+                    >geotiffをエクスポート（実験的）</span
+                >
+            </button>
         </div>
-        <div
-            id="status-message"
-            style="
-                position: fixed;
-                top: 10px;
-                left: 10px;
-                background: rgba(0, 0, 0, 0.8);
-                color: white;
-                padding: 10px;
-                border-radius: 5px;
-                display: none;
-            "
-        ></div>
         <script type="module" src="./src/main.ts"></script>
     </body>
 </html>

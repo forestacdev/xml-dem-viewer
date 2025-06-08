@@ -60,6 +60,7 @@ interface NpArrayData {
 export class ParallelXmlParser {
     private workers: Worker[] = [];
     private readonly maxWorkers = 4;
+    private isTerminated = false;
 
     constructor() {
         // 4つのWorkerを初期化
@@ -72,14 +73,26 @@ export class ParallelXmlParser {
     }
 
     async parseXmlFiles(xmlTexts: string[], seaAtZero: boolean = false): Promise<DemContent[]> {
+        if (this.isTerminated) {
+            throw new Error("Parser has been terminated");
+        }
+
         return new Promise((resolve, reject) => {
             const results: DemContent[] = new Array(xmlTexts.length);
             const errors: string[] = [];
             let completedTasks = 0;
             let nextTaskIndex = 0;
 
+            // クリーンアップ関数
+            const cleanup = () => {
+                this.workers.forEach((worker) => {
+                    worker.onmessage = null;
+                    worker.onerror = null;
+                });
+            };
+
             const processNextTask = (workerIndex: number) => {
-                if (nextTaskIndex >= xmlTexts.length) {
+                if (nextTaskIndex >= xmlTexts.length || this.isTerminated) {
                     return;
                 }
 
@@ -96,6 +109,8 @@ export class ParallelXmlParser {
             // 各Workerにメッセージハンドラーを設定
             this.workers.forEach((worker, workerIndex) => {
                 worker.onmessage = (e) => {
+                    if (this.isTerminated) return;
+
                     const result: ParseXmlResult = e.data;
 
                     if (result.error) {
@@ -111,6 +126,7 @@ export class ParallelXmlParser {
 
                     // 全タスク完了チェック
                     if (completedTasks === xmlTexts.length) {
+                        cleanup();
                         if (errors.length > 0) {
                             reject(new Error(`XML parsing errors: ${errors.join(", ")}`));
                         } else {
@@ -120,6 +136,7 @@ export class ParallelXmlParser {
                 };
 
                 worker.onerror = (error) => {
+                    cleanup();
                     reject(new Error(`Worker error: ${error.message}`));
                 };
             });
@@ -132,7 +149,28 @@ export class ParallelXmlParser {
     }
 
     terminate() {
-        this.workers.forEach((worker) => worker.terminate());
+        if (this.isTerminated) return;
+
+        alert("Parser is being terminated. All workers will be stopped.");
+
+        this.isTerminated = true;
+
+        // イベントハンドラーをクリア
+        this.workers.forEach((worker) => {
+            worker.onmessage = null;
+            worker.onerror = null;
+        });
+
+        // Workerを終了
+        this.workers.forEach((worker) => {
+            try {
+                console.log("Terminating worker:", worker);
+                worker.terminate();
+            } catch (error) {
+                console.warn("Error terminating worker:", error);
+            }
+        });
+
         this.workers = [];
     }
 }
@@ -183,9 +221,16 @@ export class Dem {
             this.getMetadataList();
             this.storeNpArrayList();
             this.storeBoundsLatLng();
+        } catch (error) {
+            console.error("Error during XML parsing:", error);
+            throw error;
         } finally {
-            // Workerを終了
-            parser.terminate();
+            // 必ずWorkerを終了
+            try {
+                parser.terminate();
+            } catch (terminateError) {
+                console.warn("Error terminating parser:", terminateError);
+            }
         }
     }
 
@@ -292,8 +337,8 @@ export class Dem {
     }
 }
 
-// ブラウザ用：ZIPファイルからDEMオブジェクトを作成
-export const createDemFromZipUpload = async (
+// ファイルからDEMオブジェクトを作成
+export const createDemFromUpload = async (
     input: File | File[],
     seaAtZero: boolean = false,
     onProgress?: (current: number, total: number, fileName: string) => void,
